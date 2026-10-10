@@ -1,0 +1,6 @@
+sb_player_id,tm_player_id,reason
+# Manual StatsBomb -> Transfermarkt player links, decided on evidence (see docs/DECISIONS.md).
+# An empty tm_player_id means "no Transfermarkt player". Lines starting with # are ignored.
+6390,54245,"Markel Susaeta (Athletic Club, 28 games): Transfermarkt has no 2015/16 appearances for him (48 in 2014/15 and 36 in 2016/17, all for Athletic Bilbao); unique name match"
+9636,314237,"Rushian Hepburn-Murphy (Aston Villa, 1 game): Transfermarkt has no 2015/16 appearances; exact name match, Transfermarkt club Aston Villa"
+40348,336704,"Assane Gnoukouri (Inter) is listed by Transfermarkt as Alassane Traoré: same club, same 2 games, same nationality (Côte d'Ivoire), no other candidate"

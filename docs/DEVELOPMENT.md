@@ -1,0 +1,130 @@
+# Development notes
+
+How the repository is organised, the commands that rebuild everything, the rules that keep the
+back-test honest, and the data pitfalls found so far. Decisions and their evidence are in
+[`DECISIONS.md`](DECISIONS.md); the status is in [`PROGRESS.md`](PROGRESS.md).
+
+## Commands
+
+```bash
+make setup             # uv sync --locked (Python 3.12, pinned by uv.lock)
+make lint              # ruff check + ruff format --check
+make format            # ruff --fix + ruff format
+make test              # unit tests (tests marked `network` or `data` are deselected)
+make all               # data + model + dq
+make data              # download, convert, validate, coverage report (idempotent)
+make model             # build-tables, links, database, dictionary (~20 s)
+make dq                # data quality tests on data/processed (pytest -m data)
+make notebooks         # re-run every notebook in place (needs `make model`)
+make verify-statsbomb  # StatsBomb coverage + size estimate (metadata only); writes inventory.csv
+make download-statsbomb       # raw JSON -> data/raw/statsbomb/ (resumable, size-checked)
+make download-transfermarkt   # gz CSVs -> data/raw/transfermarkt/ (+ manifest.json)
+make convert-statsbomb        # raw JSON -> data/interim/statsbomb/*.parquet (FORCE=1 rebuilds)
+make validate-statsbomb       # deep check Parquet vs raw JSON (key paths, counts, xG sums)
+make coverage-report          # reports/coverage_report.md
+make build-tables             # data/processed/{statsbomb,transfermarkt}/*.parquet
+make links                    # data/processed/links/ (StatsBomb <-> Transfermarkt)
+make database                 # data/processed/scouting.duckdb (views)
+make dictionary               # docs/DATA_DICTIONARY.md (fails on undocumented columns)
+```
+
+Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv add <pkg>`
+(dev-only: `uv add --dev <pkg>`); `pyproject.toml` and `uv.lock` always change together.
+
+## Layout and conventions
+
+- Python 3.12 (capped `<3.13` for socceraction), `uv` for the environment, `uv.lock` pins exact
+  versions. Ruff (line length 100) for lint and format, notebooks included; pytest for tests.
+- Reusable logic in `src/football_scouting/`; thin entry points in `scripts/`, exposed as
+  Makefile targets; `notebooks/` hold the analyses and import their logic from the package;
+  `reports/figures/` holds the figures used by the README.
+- All parameters (sources, pinned versions, competitions, seasons, position and comparison
+  groups, paths, HTTP retry policy) come from `config/pipeline.yaml` via
+  `football_scouting.config.load_config()`. No hard-coded IDs or paths in code.
+- Pipeline steps are idempotent and resumable: cached downloads (`http.fetch_json_cached`),
+  atomic writes (`.part` + rename), retries with exponential backoff, existing files skipped.
+- Raw StatsBomb files mirror the open-data repo layout under `data/raw/statsbomb/`, downloaded
+  from the commit SHA pinned in the config (`statsbomb.ref`), never from `master`.
+- Data layers: `data/raw/` (as downloaded), `data/interim/` (a faithful Parquet copy of the raw
+  JSON: nested STRUCT/LIST columns, strings kept as strings, no cleaning), `data/processed/`
+  (the analytical model). Interim tables are queried with DuckDB, e.g.
+  `read_parquet('data/interim/statsbomb/events/*.parquet')`, nested fields as
+  `shot.statsbomb_xg`.
+- DuckDB connections for big scans come from `statsbomb_parquet.connect()` (4 threads, 3 GB
+  limit): the JSON conversion peaks at about 4 GB of memory.
+- New processed columns must be described in `src/football_scouting/model/dictionary.yaml`
+  (`make dictionary` fails otherwise).
+- Tests that hit the network are marked `network`; tests on the processed data are marked
+  `data` and run with `make dq`.
+
+## Notebooks
+
+- `football_scouting.model.database.connect_readonly(load_config())` gives a DuckDB connection
+  with every processed table as a view (Transfermarkt tables prefixed `tm_`).
+- Helpers in `football_scouting.analysis`:
+  - `players.pool_player_seasons`: one row per pool player, minutes summed over clubs, primary
+    position group, comparison group, age on a given date;
+  - `metrics.player_match_counts` and `metrics.rates`: event counts per player and match, then
+    per-90 rates and ratios from any sum of rows;
+  - `reliability`: split-half reliability and the stabilisation constant K per metric.
+- Figures use `football_scouting.plots`: `use_style()`, `position_colors(cfg)` and
+  `credit(fig)` for the source line.
+- Players are compared within the six `comparison_groups` of the config, not the seven
+  position groups.
+
+## Rules that protect the analysis
+
+- **No data in git.** `data/` is ignored, as are `*.parquet` and `*.duckdb`. StatsBomb's terms
+  forbid redistributing the data, so notebooks show aggregated results only (no dumps of event
+  tables), and published work credits StatsBomb with its logo (see
+  [`DATA_SOURCES.md`](DATA_SOURCES.md)).
+- **No leakage.** Features use 2015/16 information only. Outcomes (later market values,
+  transfers, careers) live in separate tables and are never joined into feature code.
+  Transfermarkt snapshot columns (current club and value, highest value, contract, caps,
+  agent, squad values) describe 2026 and are outcomes only.
+- **Every claim about the data is checked against the files**, with counts: what a field
+  means, what a table covers, how many rows a rule affects.
+
+## Data pitfalls found so far
+
+StatsBomb:
+- Bundesliga 2015/16 (competition 9, season 27) is **Bayer Leverkusen's 34 matches only**:
+  outside the scouting pool (`scouting_pool: false`).
+- Ligue 1 2015/16 has 377 of 380 matches (missing: Bastia vs Gazélec Ajaccio, Saint-Étienne vs
+  Paris Saint-Germain, Troyes vs Bordeaux); those six teams have 37 matches.
+- Matches 3878540 (Serie A, Lazio vs Bologna) and 3900563 (Ligue 1, Guingamp vs Rennes) have no
+  `data_version` / `shot_fidelity_version` / `xy_fidelity_version`; check their events before
+  relying on fidelity-dependent fields.
+- Event dicts have heterogeneous keys: `pyarrow.Table.from_pylist` infers the schema from the
+  **first row only** and silently drops columns. Infer over all rows (`pa.array(rows)`) or pass
+  an explicit schema.
+- **Lineups include unused substitutes** (empty `positions` list); a player played if they have
+  at least one position.
+- **Lineups do not close stints at exits**: dismissals (413 of 420) and some substitutions after
+  a "Player On" leave the player on until the final whistle. `model/minutes.py` ends time at
+  the first exit; never compute minutes from lineups directly.
+- Lineup `from` / `to` and event `minute` / `second` are the match clock (45:00 at the start of
+  the second half), not real time: use `match_seconds` / `start_seconds`. Event `timestamp`
+  restarts every period. Cards (Bad Behaviour) can come after the whistle.
+- Names contain escaped apostrophes ("N''Golo"); the processed tables undo it.
+- **Recording changes.** From 2015-12-28 (match week 19) the Premier League records about 3x
+  the interceptions, 18% more pressures and 16% more clearances; interceptions also differ
+  about 1.6x between leagues. Never compare raw interceptions, pressures or clearances across
+  leagues or across that date. Attacking and passing numbers share one scale (league partial
+  η² <= 0.03).
+- **Reliability.** Goals and dribble success are mostly noise over one season; non-penalty xG
+  needs about 1,700 minutes for r = 0.7. Shrink with K per metric (`analysis.reliability`).
+
+Transfermarkt:
+- **`transfers` is survivorship-biased**: no records for players whose `players.last_season` is
+  before 2020, and only 38% of 2015/16 -> 2016/17 club changes have a record. Use `appearances`
+  and the club on each valuation for careers.
+- `games.season` 2015 means 2015/16. Competition codes: GB1, ES1, IT1, FR1, L1. `appearances`
+  only contains players who played.
+- Valuations are irregular in time: "value at date X" is the latest valuation on or before X,
+  and its age is kept. 520 transfers are future-dated (up to 2030).
+- Missing dates of birth are filled only from `config/date_of_birth_overrides.csv` (with a
+  source); the build fails if an override would replace an existing date.
+- Name and coverage gaps handled by hand in `config/player_match_overrides.csv`: Markel
+  Susaeta and Rushian Hepburn-Murphy have no 2015/16 appearances; Assane Gnoukouri is listed
+  as "Alassane Traoré".

@@ -1,0 +1,101 @@
+# Single source of truth for pipeline parameters (sources, competitions, seasons, paths).
+# Paths are relative to the project root.
+
+paths:
+  raw: data/raw
+  interim: data/interim
+  processed: data/processed
+  figures: reports/figures
+
+statsbomb:
+  repo: statsbomb/open-data
+  # Git ref (commit SHA) the raw files are downloaded from. Pinned so the raw snapshot is
+  # reproducible: StatsBomb re-releases files (Ligue 1 2015/16 was last updated 2026-05-12).
+  # Latest master commit on 2026-10-06.
+  ref: 4b73468fc5b0f1950f9f66fada70ad3a4f9327cb
+  season_name: "2015/2016"
+  competitions:
+    # expected_matches: counts checked in the open-data repo on 2026-10-06, re-verified
+    # by `make verify-statsbomb`. scouting_pool: included in league-wide comparisons.
+    # transfermarkt_*: the same league-season in Transfermarkt (`games.competition_id`,
+    # `games.season`; season 2015 = 2015/16, verified 2026-10-06).
+    - name: Premier League
+      competition_id: 2
+      season_id: 27
+      expected_matches: 380
+      scouting_pool: true
+      transfermarkt_competition_id: GB1
+      transfermarkt_season: 2015
+    - name: La Liga
+      competition_id: 11
+      season_id: 27
+      expected_matches: 380
+      scouting_pool: true
+      transfermarkt_competition_id: ES1
+      transfermarkt_season: 2015
+    - name: Serie A
+      competition_id: 12
+      season_id: 27
+      expected_matches: 380
+      scouting_pool: true
+      transfermarkt_competition_id: IT1
+      transfermarkt_season: 2015
+    - name: Ligue 1
+      competition_id: 7
+      season_id: 27
+      expected_matches: 377
+      scouting_pool: true
+      transfermarkt_competition_id: FR1
+      transfermarkt_season: 2015
+    - name: 1. Bundesliga
+      competition_id: 9
+      season_id: 27
+      # Bayer Leverkusen's matches only, not the full league. See docs/DECISIONS.md.
+      expected_matches: 34
+      scouting_pool: false
+      transfermarkt_competition_id: L1
+      transfermarkt_season: 2015
+
+# StatsBomb position_id -> position group (decided 2026-10-07, see docs/DECISIONS.md).
+position_groups:
+  - {code: GK, name: Goalkeeper, position_ids: [1]}
+  - {code: CB, name: Centre-back, position_ids: [3, 4, 5]}
+  - {code: FB, name: Full-back / wing-back, position_ids: [2, 6, 7, 8]}
+  - {code: CM, name: Central midfield, position_ids: [9, 10, 11, 13, 14, 15]}
+  - {code: AM, name: Attacking midfield, position_ids: [18, 19, 20]}
+  - {code: W, name: Wide midfield / winger, position_ids: [12, 16, 17, 21]}
+  - {code: CF, name: Centre-forward, position_ids: [22, 23, 24]}
+
+# Groups players are compared within (percentiles, models). Attacking midfield is too small to
+# stand alone and plays like the wingers (decided 2026-10-11; the test is in
+# notebooks/01_data_exploration.ipynb, section 1.4). Every position group belongs to one.
+comparison_groups:
+  - {code: GK, name: Goalkeepers, members: [GK]}
+  - {code: CB, name: Centre-backs, members: [CB]}
+  - {code: FB, name: Full-backs, members: [FB]}
+  - {code: CM, name: Central midfielders, members: [CM]}
+  - {code: AMW, name: Attacking midfielders and wingers, members: [AM, W]}
+  - {code: CF, name: Centre-forwards, members: [CF]}
+
+transfermarkt:
+  # dcaribou/transfermarkt-datasets, gzipped CSV exports (license CC0-1.0).
+  # Snapshot published 2026-09-05; upstream updates are paused (data up to July 2026).
+  # Upstream overwrites these files in place, so each download is recorded with its size,
+  # sha256, ETag and Last-Modified in data/raw/transfermarkt/manifest.json.
+  base_url: https://pub-e682421888d945d684bcae8890b0ec20.r2.dev/data
+  tables:
+    - players
+    - player_valuations
+    - transfers
+    - clubs
+    - appearances
+    # competitions: decodes competition codes (e.g. GB1); games: season of each appearance.
+    - competitions
+    - games
+
+http:
+  timeout_seconds: 60
+  max_retries: 5
+  backoff_seconds: 2.0
+  # Parallel downloads for per-match files.
+  max_workers: 8

@@ -1,0 +1,4 @@
+tm_player_id,date_of_birth,source
+# Dates of birth missing from the Transfermarkt data, filled by hand (see docs/DECISIONS.md).
+# Only fills gaps: the build fails if Transfermarkt already has a date for the player.
+79642,1986-04-16,"Shinji Okazaki (Leicester City 2015/16). Wikipedia, https://en.wikipedia.org/wiki/Shinji_Okazaki, checked 2026-10-11"
