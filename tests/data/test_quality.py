@@ -285,6 +285,29 @@ def test_every_player_who_played_is_linked_one_to_one(con):
     )
 
 
+def test_valuation_club_name_is_the_club_at_the_time(con):
+    """During 2015/16, pool players' valuations name their 2015/16 club (the exact Transfermarkt
+    name for 80%+; the rest are spelling variants and reserve teams). The valuation's club id
+    is not reliable (62%), so analyses use the name."""
+    share = one(
+        con,
+        """
+        WITH season_clubs AS (
+            SELECT DISTINCT m.tm_player_id, t.club_name
+            FROM player_seasons ps JOIN competitions c USING (competition_id, season_id)
+            JOIN team_map t USING (competition_id, season_id, team_id)
+            JOIN player_map m ON m.sb_player_id = ps.player_id
+            WHERE c.scouting_pool AND ps.matches_played > 0)
+        SELECT avg((EXISTS (SELECT 1 FROM season_clubs s WHERE s.tm_player_id = v.player_id
+                                                        AND s.club_name = v.current_club_name))::INT)
+        FROM tm_player_valuations v
+        WHERE v.date BETWEEN '2015-09-15' AND '2016-05-31'
+          AND v.player_id IN (SELECT tm_player_id FROM season_clubs)
+        """,
+    )
+    assert share > 0.8
+
+
 def test_every_linked_player_has_a_date_of_birth(con):
     missing = one(
         con,

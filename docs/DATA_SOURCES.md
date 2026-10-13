@@ -111,13 +111,27 @@ updates are paused: `games` ends 2026-07-06, `appearances` 2026-06-28, `player_v
   has any transfer record (14,153 players in the snapshot; 935 of our 2,175). Even for the
   others, only 61.6% have one. Of the 583 pool players whose main club changed between 2015/16
   and 2016/17, only 38.1% have a matching transfer record (e.g. Higuaín's 2016 move to
-  Juventus is missing). Career moves need `appearances` and the club on each valuation.
+  Juventus is missing). Career moves need `appearances` and the club name on each valuation.
 - 520 transfers are dated after the snapshot's last game (up to 2030-06-30): announced future
   moves.
 - `transfers.transfer_fee` is present on most rows, but the meaning of 0 vs null (free, loan,
   unknown) is not yet verified.
 - Valuations are irregular in time (a few per player per year), so "value at date X" means "the
   latest valuation on or before X" and its age must be tracked.
+- **Valuations come in batches, league by league** (found 2026-10-12,
+  `notebooks/01_data_exploration.ipynb` section 4). In 2015/16: winter batches on 4 January
+  (Serie A), 4 February (Ligue 1), 9 February (Premier League) and 22 February (La Liga); the
+  end-of-season batches only on 13 July (Ligue 1), 15 July (La Liga, Serie A) and 1 August
+  (Premier League), after Euro 2016 and into the transfer window. On 30 June 2016 the median
+  pool player's value is 142 days old. On 1 June 2016 Transfermarkt revalued 211 pool
+  players, 99.5% from the 24 Euro 2016 nations: the tournament squads. In 2017-2022 the
+  end-of-season batches came in late May or June (August in 2020).
+- **`player_valuations.current_club_id` is not the club at the valuation date.** For 2015/16
+  valuations of pool players it is the player's 2015/16 club only 62% of the time (often the
+  2026 club), and `player_club_domestic_competition_id` is that club's league in `clubs`.
+  `current_club_name` is the club at the valuation date (the exact 2015/16 club name for 85%;
+  the rest are spelling variants and reserve teams), as known transfers confirm (Kanté:
+  Leicester City on 1 June 2016, Chelsea FC on 1 August 2016).
 
 **License and attribution.** The dataset repository is licensed CC0-1.0. The data itself comes
 from transfermarkt.com, and we credit Transfermarkt as the original source alongside the

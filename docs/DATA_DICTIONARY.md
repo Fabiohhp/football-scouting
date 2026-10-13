@@ -718,9 +718,9 @@ Grain: one row per player and valuation date. Rows: 656,301. File: `transfermark
 | `player_id` | `BIGINT` | Transfermarkt player id. |
 | `date` | `DATE` | Valuation date. |
 | `market_value_in_eur` | `BIGINT` | Market value in euros. |
-| `current_club_name` | `VARCHAR` | Club at the valuation date. |
-| `current_club_id` | `BIGINT` | Club id at the valuation date. |
-| `player_club_domestic_competition_id` | `VARCHAR` | League of that club. |
+| `current_club_name` | `VARCHAR` | Club at the valuation date (reserve and youth teams named separately; spelling can differ from `tm_clubs.name`). |
+| `current_club_id` | `BIGINT` | Not reliably the club at the valuation date: for 2015/16 valuations of pool players it is the player's club only 62% of the time, and often the snapshot (2026) club. Use `current_club_name`. |
+| `player_club_domestic_competition_id` | `VARCHAR` | Domestic league of `current_club_id` in `tm_clubs` (same caveat), not the league at the valuation date. |
 
 ### `tm_transfers`
 

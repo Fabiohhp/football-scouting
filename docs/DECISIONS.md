@@ -209,3 +209,14 @@ pressures and clearances, and at most 3% of any attacking or passing metric (0.4
 and passes). A multiplicative rescale matches a change that scales counts up. It also removes
 real league differences in these three metrics (pressing intensity, for instance), which
 cannot be told apart from recording.
+
+## 2026-10-12: The club on a valuation is read from its name, not its id
+
+**Decision.** A valuation's club is `player_valuations.current_club_name`
+(`analysis.values.pool_valuations`); `current_club_id` and
+`player_club_domestic_competition_id` are not used. The data dictionary says so.
+**Reason.** For 2015/16 valuations of pool players, the id is the player's 2015/16 club only
+62% of the time and often the snapshot (2026) club; the name is the exact 2015/16 club name for
+85%, and the rest are spelling variants and reserve teams. Known moves confirm it (Higuaín,
+Kanté, Stones, Pogba change name on the first valuation after their transfer). A data quality
+test guards the name.

@@ -66,7 +66,9 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     position group, comparison group, age on a given date;
   - `metrics.player_match_counts` and `metrics.rates`: event counts per player and match, then
     per-90 rates and ratios from any sum of rows;
-  - `reliability`: split-half reliability and the stabilisation constant K per metric.
+  - `reliability`: split-half reliability and the stabilisation constant K per metric;
+  - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
+    and each player's value (and its age) on a date.
 - Figures use `football_scouting.plots`: `use_style()`, `position_colors(cfg)` and
   `credit(fig)` for the source line.
 - Players are compared within the six `comparison_groups` of the config, not the seven
@@ -123,6 +125,11 @@ Transfermarkt:
   only contains players who played.
 - Valuations are irregular in time: "value at date X" is the latest valuation on or before X,
   and its age is kept. 520 transfers are future-dated (up to 2030).
+- **Valuations come in league batches**: on 30 June 2016 most values date from January or
+  February; the end-of-season revaluation came on 13 July to 1 August 2016, after Euro 2016
+  and with July's transfers already in. Values set after the cutoff are outcomes.
+- **`player_valuations.current_club_id` (and `player_club_domestic_competition_id`) is often
+  the player's 2026 club**, not the club at the valuation date. Use `current_club_name`.
 - Missing dates of birth are filled only from `config/date_of_birth_overrides.csv` (with a
   source); the build fails if an override would replace an existing date.
 - Name and coverage gaps handled by hand in `config/player_match_overrides.csv`: Markel

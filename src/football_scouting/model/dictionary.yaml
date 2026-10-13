@@ -485,9 +485,16 @@ tables:
       player_id: Transfermarkt player id.
       date: Valuation date.
       market_value_in_eur: Market value in euros.
-      current_club_name: Club at the valuation date.
-      current_club_id: Club id at the valuation date.
-      player_club_domestic_competition_id: League of that club.
+      current_club_name: >-
+        Club at the valuation date (reserve and youth teams named separately; spelling can
+        differ from `tm_clubs.name`).
+      current_club_id: >-
+        Not reliably the club at the valuation date: for 2015/16 valuations of pool players it
+        is the player's club only 62% of the time, and often the snapshot (2026) club. Use
+        `current_club_name`.
+      player_club_domestic_competition_id: >-
+        Domestic league of `current_club_id` in `tm_clubs` (same caveat), not the league at the
+        valuation date.
 
   transfermarkt/transfers:
     description: >-
