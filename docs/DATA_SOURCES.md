@@ -53,6 +53,11 @@ version 2, except the two noted below.
   pressures and 16% more clearances, while passes, recoveries and duels stay flat. Across
   leagues, interceptions per team and match range from 10 (Serie A) to 16 (La Liga). No other
   event type in any league shifts by more than 8% between the two halves of the season.
+- **Shots and xG** (found 2026-10-13, `notebooks/01_data_exploration.ipynb` section 5). Every
+  shot has `statsbomb_xg` (floor 0.00018). Every penalty has xG 0.7835 and 354 of 400 have no
+  freeze frame; every other shot has one. The 7 shots straight from a corner (`shot_type`
+  Corner) sit at the xG floor. Non-penalty xG is about 4% below the goals scored, the same in
+  every league; direct free kicks score 1.6 times their xG.
 
 **Terms of use** ([`LICENSE.pdf`](https://github.com/statsbomb/open-data/blob/master/LICENSE.pdf),
 "StatsBomb Public Data User Agreement", last updated 8 September 2023, plus the repo README):

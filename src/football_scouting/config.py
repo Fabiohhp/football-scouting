@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +57,14 @@ class TransfermarktConfig:
 
 
 @dataclass(frozen=True)
+class BacktestConfig:
+    market_view: date  # market values a club could see when deciding (a feature)
+    outcome_base: date  # value growth is measured from here
+    horizons: tuple[date, ...]  # dates outcomes are read on
+    still_valued_days: int  # older latest valuation at a horizon: no longer valued
+
+
+@dataclass(frozen=True)
 class HttpConfig:
     timeout_seconds: float
     max_retries: int
@@ -78,6 +87,7 @@ class Config:
     transfermarkt: TransfermarktConfig
     position_groups: tuple[PositionGroup, ...]
     comparison_groups: tuple[ComparisonGroup, ...]
+    backtest: BacktestConfig
     http: HttpConfig
 
     def comparison_group_of(self) -> dict[str, str]:
@@ -116,11 +126,23 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
     members = sorted(m for g in comparison_groups for m in g.members)
     if members != sorted(g.code for g in position_groups):
         raise ValueError("every position group must belong to exactly one comparison group")
+    bt = raw["backtest"]
+    backtest = BacktestConfig(
+        market_view=bt["market_view"],
+        outcome_base=bt["outcome_base"],
+        horizons=tuple(bt["horizons"]),
+        still_valued_days=bt["still_valued_days"],
+    )
+    if [backtest.market_view, backtest.outcome_base, *backtest.horizons] != sorted(
+        {backtest.market_view, backtest.outcome_base, *backtest.horizons}
+    ):
+        raise ValueError("back-test dates must be distinct and in order")
     return Config(
         paths=paths,
         statsbomb=statsbomb,
         transfermarkt=transfermarkt,
         position_groups=position_groups,
         comparison_groups=comparison_groups,
+        backtest=backtest,
         http=HttpConfig(**raw["http"]),
     )

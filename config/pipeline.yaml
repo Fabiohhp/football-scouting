@@ -77,6 +77,20 @@ comparison_groups:
   - {code: AMW, name: Attacking midfielders and wingers, members: [AM, W]}
   - {code: CF, name: Centre-forwards, members: [CF]}
 
+# The recruitment back-test (decided 2026-10-13; evidence in
+# notebooks/01_data_exploration.ipynb, section 4). Players are judged on 2015/16 data and on the
+# market value a club could see on `market_view`. Value growth is measured from `outcome_base`,
+# after every league's end-of-season revaluation, so that catch-up never counts as a prediction.
+# Outcomes are read after each later summer's revaluation, up to five years (the longest
+# contract a club could sign in 2016); 2020 is left out (most values then were the flat cut of
+# 8 April 2020). A player is still valued at a horizon if their latest valuation is at most
+# `still_valued_days` old.
+backtest:
+  market_view: 2016-06-30
+  outcome_base: 2016-08-01
+  horizons: [2017-08-31, 2018-08-31, 2019-08-31, 2021-08-31]
+  still_valued_days: 365
+
 transfermarkt:
   # dcaribou/transfermarkt-datasets, gzipped CSV exports (license CC0-1.0).
   # Snapshot published 2026-09-05; upstream updates are paused (data up to July 2026).

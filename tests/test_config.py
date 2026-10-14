@@ -1,3 +1,5 @@
+from datetime import date
+
 from football_scouting.config import PROJECT_ROOT, load_config
 
 
@@ -25,3 +27,10 @@ def test_comparison_groups_cover_each_position_group_once():
     mapping = cfg.comparison_group_of()
     assert sorted(mapping) == sorted(g.code for g in cfg.position_groups)
     assert mapping["AM"] == mapping["W"] == "AMW"
+
+
+def test_backtest_outcomes_come_after_the_market_view():
+    bt = load_config().backtest
+    assert bt.market_view == date(2016, 6, 30) and bt.outcome_base == date(2016, 8, 1)
+    assert all(h > bt.outcome_base for h in bt.horizons)
+    assert date(2020, 8, 31) not in bt.horizons

@@ -38,3 +38,22 @@ def test_no_signal_gives_no_reliability():
     curve = split_half_reliability(counts, context, ["shots"], [450, 900], draws=5)
     assert curve["shots"].abs().mean() < 0.05
     assert (curve["players"] == 600).all()
+
+
+def test_reliability_in_shots_for_a_per_shot_ratio():
+    # Conversion uniform on [0.05, 0.25] at 0.1 xG per shot: finishing = goals / shots - 0.1,
+    # K = E[p(1 - p)] / Var(p) = 0.124167 / 0.003333 = 37 shots.
+    rng = np.random.default_rng(2)
+    n, matches = 600, 30
+    conversion = np.repeat(rng.uniform(0.05, 0.25, n), matches)
+    counts = synthetic_counts(np.full(n, 3.0), matches, seed=3)
+    counts["goals"] = rng.binomial(counts["shots"], conversion)
+    counts["xg"] = counts["shots"] * 0.1
+    counts["goals_minus_xg"] = counts["goals"] - counts["xg"]
+    context = pd.Series("all", index=np.arange(n))
+    curve = split_half_reliability(
+        counts, context, ["finishing"], [10, 20, 40], draws=5, budget="shots"
+    )
+    assert curve["shots"].ge(10).all()  # mean shots per half, at least the target
+    k = stabilisation_minutes(curve, ["finishing"], budget="shots")["finishing"]
+    assert k == pytest.approx(37, rel=0.25)

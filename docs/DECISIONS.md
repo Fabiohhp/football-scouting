@@ -220,3 +220,31 @@ cannot be told apart from recording.
 85%, and the rest are spelling variants and reserve teams. Known moves confirm it (Higuaín,
 Kanté, Stones, Pogba change name on the first valuation after their transfer). A data quality
 test guards the name.
+
+## 2026-10-13: The back-test's dates (EDA section 4)
+
+**Decision** (`backtest` in `config/pipeline.yaml`):
+- the market's view of a player is their value on **30 June 2016**, kept with its age, and is a
+  feature like the 2015/16 numbers;
+- value growth is measured from the value on **1 August 2016**, after every league's
+  end-of-season revaluation; moves made in July 2016 are career outcomes;
+- outcomes are read on **31 August 2017, 2018, 2019 and 2021** (+1, +2, +3, +5 years);
+- a player with no valuation in the 12 months before a horizon is **no longer valued**, an
+  outcome, not missing data.
+
+**Reason.** Transfermarkt revalues league by league. On 30 June 2016 the median value was 142
+days old, and the end-of-season revaluation came only on 13 July to 1 August 2016. That
+revaluation follows the season just played: among players who stayed at their club, 48% of
+those with 2,700+ minutes went up against 10% down. Measuring growth from 30 June would let a
+model fed with the full season score on that catch-up. Values from 1 August alone are fresh but
+already contain July's moves (415 players revalued at another club) and Euro 2016 (199 squad
+players, +5% on average), which a club deciding in June could not see. Splitting the two dates
+keeps what the club could see as the feature and starts the outcome after the catch-up.
+Several horizons because players pay off at different speeds: five years on, the median
+under-21 is worth 2.6 times their August 2016 value and the median 28 to 30-year-old a fifth.
+31 August falls after every later summer's revaluation (late May to June; 25 August in 2020).
+Five years is the longest contract a club could sign in 2016. 2020 is left out because on
+8 April 2020 Transfermarkt cut 1,650 pool players at once (median -20%), and on 31 August 2020
+56% of the players still valued carried that cut rather than a reading of the season. Players
+who stop being valued are mostly older (median age 33 in 2016), but for young players it says
+something about the career, so dropping them would flatter any model.

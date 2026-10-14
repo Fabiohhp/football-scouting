@@ -8,7 +8,8 @@ rates and ratios.
 Definitions (StatsBomb pitch, 120 x 80, the acting team attacks towards x = 120):
 - open-play passes exclude throw-ins, free kicks, goal kicks, corners and kick-offs;
 - the penalty box is x >= 102 and 18 <= y <= 62;
-- non-penalty shots, xG and goals leave out penalties;
+- non-penalty shots, xG and goals leave out penalties; finishing is non-penalty goals minus
+  xG per shot (0 = scores what the chances are worth);
 - touches are on-ball actions: passes, completed ball receipts, carries, dribbles, shots,
   miscontrols, dispossessions, successful ball recoveries, interceptions, clearances,
   blocks, 50/50s and shields.
@@ -42,6 +43,8 @@ PER_90 = {
 RATIOS = {
     "pass_completion": ("passes_completed", "passes", "Open-play pass completion"),
     "dribble_success": ("dribbles_completed", "dribbles", "Dribble success"),
+    "xg_per_shot": ("xg", "shots", "Non-penalty xG per shot"),
+    "finishing": ("goals_minus_xg", "shots", "Finishing: non-penalty goals minus xG per shot"),
     "mean_x": ("sum_x", "touches", "Average touch position (x, towards goal)"),
     "mean_width": ("sum_width", "touches", "Average touch distance from the centre line"),
 }
@@ -86,7 +89,8 @@ def player_match_counts(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
         s AS (
             SELECT match_id, player_id,
                    count(*) AS shots, sum(statsbomb_xg) AS xg,
-                   count(*) FILTER (WHERE outcome = 'Goal') AS goals
+                   count(*) FILTER (WHERE outcome = 'Goal') AS goals,
+                   count(*) FILTER (WHERE outcome = 'Goal') - sum(statsbomb_xg) AS goals_minus_xg
             FROM shots WHERE shot_type <> 'Penalty' GROUP BY ALL),
         d AS (
             SELECT match_id, player_id, count(*) AS dribbles,

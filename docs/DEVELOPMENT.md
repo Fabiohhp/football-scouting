@@ -39,7 +39,7 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   Makefile targets; `notebooks/` hold the analyses and import their logic from the package;
   `reports/figures/` holds the figures used by the README.
 - All parameters (sources, pinned versions, competitions, seasons, position and comparison
-  groups, paths, HTTP retry policy) come from `config/pipeline.yaml` via
+  groups, back-test dates, paths, HTTP retry policy) come from `config/pipeline.yaml` via
   `football_scouting.config.load_config()`. No hard-coded IDs or paths in code.
 - Pipeline steps are idempotent and resumable: cached downloads (`http.fetch_json_cached`),
   atomic writes (`.part` + rename), retries with exponential backoff, existing files skipped.
@@ -65,8 +65,9 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   - `players.pool_player_seasons`: one row per pool player, minutes summed over clubs, primary
     position group, comparison group, age on a given date;
   - `metrics.player_match_counts` and `metrics.rates`: event counts per player and match, then
-    per-90 rates and ratios from any sum of rows;
-  - `reliability`: split-half reliability and the stabilisation constant K per metric;
+    per-90 rates and ratios (xG per shot and finishing among them) from any sum of rows;
+  - `reliability`: split-half reliability and the stabilisation constant K per metric, in
+    minutes or, with `budget="shots"`, in shots for per-shot ratios;
   - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
     and each player's value (and its age) on a date.
 - Figures use `football_scouting.plots`: `use_style()`, `position_colors(cfg)` and
@@ -116,6 +117,13 @@ StatsBomb:
   η² <= 0.03).
 - **Reliability.** Goals and dribble success are mostly noise over one season; non-penalty xG
   needs about 1,700 minutes for r = 0.7. Shrink with K per metric (`analysis.reliability`).
+  Finishing (goals minus xG per shot) shows no skill in one season (K about 1,600 shots); xG per
+  shot is stable (K about 28 shots).
+- **xG.** Every penalty has xG 0.7835 and most have no freeze frame; shots straight from a
+  corner sit at the xG floor (0.00018). Non-penalty xG runs about 4% below goals in every
+  league; direct free kicks score 1.6 times their xG, open-play shots under 0.06 xG score less
+  than predicted and chances of 0.1 to 0.4 more. Rankings within a comparison group barely
+  change when xG is recalibrated.
 
 Transfermarkt:
 - **`transfers` is survivorship-biased**: no records for players whose `players.last_season` is
@@ -127,7 +135,11 @@ Transfermarkt:
   and its age is kept. 520 transfers are future-dated (up to 2030).
 - **Valuations come in league batches**: on 30 June 2016 most values date from January or
   February; the end-of-season revaluation came on 13 July to 1 August 2016, after Euro 2016
-  and with July's transfers already in. Values set after the cutoff are outcomes.
+  and with July's transfers already in. The back-test reads the market's view on 30 June 2016
+  and growth from 1 August 2016 (`backtest` in the config); later values are outcomes only.
+- **8 April 2020: a flat COVID cut** of almost every value (1,650 pool players, median -20%);
+  on 31 August 2020 most values are still that cut. Raw value growth is mostly age: compare a
+  player's growth with players of the same age.
 - **`player_valuations.current_club_id` (and `player_club_domestic_competition_id`) is often
   the player's 2026 club**, not the club at the valuation date. Use `current_club_name`.
 - Missing dates of birth are filled only from `config/date_of_birth_overrides.csv` (with a

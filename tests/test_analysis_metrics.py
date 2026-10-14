@@ -10,6 +10,7 @@ def test_rates_per_90_and_ratios():
     sums = pd.DataFrame(0.0, index=[0, 1], columns=sorted(columns))
     sums["minutes"] = [180.0, 45.0]
     sums["shots"] = [4, 1]
+    sums["xg"], sums["goals_minus_xg"] = [0.6, 0.1], [0.4, -0.1]  # 1 goal from 4 shots
     sums["passes"], sums["passes_completed"] = [50, 0], [40, 0]
     sums["touches"], sums["sum_x"] = [10, 0], [700, 0]
     out = rates(sums)
@@ -17,3 +18,5 @@ def test_rates_per_90_and_ratios():
     assert out.loc[0, "pass_completion"] == pytest.approx(0.8)
     assert np.isnan(out.loc[1, "pass_completion"])  # no passes: ratio undefined, not 0
     assert out.loc[0, "mean_x"] == 70
+    assert out.loc[0, "xg_per_shot"] == pytest.approx(0.15)
+    assert out["finishing"].tolist() == pytest.approx([0.1, -0.1])
