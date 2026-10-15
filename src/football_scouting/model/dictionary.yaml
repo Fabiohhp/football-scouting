@@ -21,8 +21,8 @@ common_event_columns:
   player_id: Player performing the event (null for team events such as Half Start).
   position_id: StatsBomb position id of the player at the time of the event (1-25, see position groups).
   position: StatsBomb position name.
-  x: Event location, 0-120 along the pitch; the acting team always attacks towards x = 120.
-  y: Event location, 0-80 across the pitch.
+  x: Event location along the pitch, 0.1-120.0 on a 0.1-yard grid; the acting team always attacks towards x = 120.
+  y: Event location across the pitch, 0.1-80.0 (the touchlines); y = 0 is the acting team's left.
   duration: Length of the event in seconds, where relevant.
   under_pressure: Performed while pressured by an opponent (StatsBomb definition, Appendix 7).
   counterpress: Pressing action within 5 seconds of an open-play turnover.

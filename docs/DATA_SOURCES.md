@@ -39,7 +39,7 @@ version 2, except the two noted below.
 - **No 360 data** for any of these matches (`match_available_360` is null).
 - Two matches have no `data_version` / `shot_fidelity_version` / `xy_fidelity_version` in their
   metadata: 3878540 (Serie A, Lazio vs Bologna, 2015-08-22) and 3900563 (Ligue 1, Guingamp vs
-  Rennes, 2015-12-19).
+  Rennes, 2015-12-19). Their shots and locations look like the rest (EDA sections 5 and 6).
 - **Lineups include unused substitutes**, listed with an empty `positions` list. "Players who
   played" = at least one position. Squads per team-match range from 15 to 24 players.
 - 10 (match, player) pairs have events but an empty `positions` list. To investigate in Phase 2
@@ -58,6 +58,15 @@ version 2, except the two noted below.
   freeze frame; every other shot has one. The 7 shots straight from a corner (`shot_type`
   Corner) sit at the xG floor. Non-penalty xG is about 4% below the goals scored, the same in
   every league; direct free kicks score 1.6 times their xG.
+- **Locations** (found 2026-10-14, `notebooks/01_data_exploration.ipynb` section 6).
+  Coordinates are a 0.1-yard grid from 0.1 to 120.0 along the pitch and 0.1 to 80.0 across it
+  (throw-ins sit on y = 0.1 or 80.0); 15 events lie up to 0.9 yards beyond. Every event is seen
+  from the acting team, attacking towards x = 120 with y = 0 on its left: an event both teams
+  record sits at (x, y) for one and (120.1 - x, 80.1 - y) for the other (99.5% of 202,748 pairs
+  exactly). Set-piece spots depend on the end of the stadium a team attacks (kick-offs at
+  x = 60 or 61, goal kicks at x = 6 or 7), and in its half towards one end a team's passes,
+  carries and receptions sit about 0.6 yards further forward and 2.5 yards further right.
+  Every team plays one half towards each end.
 
 **Terms of use** ([`LICENSE.pdf`](https://github.com/statsbomb/open-data/blob/master/LICENSE.pdf),
 "StatsBomb Public Data User Agreement", last updated 8 September 2023, plus the repo README):

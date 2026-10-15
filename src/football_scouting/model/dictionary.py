@@ -34,8 +34,10 @@ con.sql("SELECT * FROM player_seasons JOIN player_map ON sb_player_id = player_i
 
 ## Conventions
 
-- **Pitch**: 120 x 80 (yards), origin at the top-left corner. Every event is described from
-  the acting team's point of view, attacking towards x = 120.
+- **Pitch**: 120 x 80 (yards), origin at the top-left corner; locations are a 0.1-yard grid
+  (0.1 to 120.0, 0.1 to 80.0). Every event is described from the acting team's point of view,
+  attacking towards x = 120 with y = 0 on its left: an event both teams record sits at (x, y)
+  for one and (120.1 - x, 80.1 - y) for the other.
 - **Time**: `match_seconds` is real time since kick-off. The match clock (`minute`, `second`)
   restarts at 45:00 in the second half, so it is not real time after half-time.
 - **Minutes played** are real time on the pitch, stoppage time included; per-90 metrics use

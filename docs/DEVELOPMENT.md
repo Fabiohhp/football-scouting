@@ -69,9 +69,12 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   - `reliability`: split-half reliability and the stabilisation constant K per metric, in
     minutes or, with `budget="shots"`, in shots for per-shot ratios;
   - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
-    and each player's value (and its age) on a date.
+    and each player's value (and its age) on a date;
+  - `leagues.eta_squared` and `leagues.league_effect`: how much of a number the league
+    explains, between team-matches and for players within comparison group.
 - Figures use `football_scouting.plots`: `use_style()`, `position_colors(cfg)` and
-  `credit(fig)` for the source line.
+  `credit(fig)` for the source line. Pitches are drawn with mplsoccer
+  (`pitch_type="statsbomb"`).
 - Players are compared within the six `comparison_groups` of the config, not the seven
   position groups.
 
@@ -96,8 +99,8 @@ StatsBomb:
 - Ligue 1 2015/16 has 377 of 380 matches (missing: Bastia vs Gazélec Ajaccio, Saint-Étienne vs
   Paris Saint-Germain, Troyes vs Bordeaux); those six teams have 37 matches.
 - Matches 3878540 (Serie A, Lazio vs Bologna) and 3900563 (Ligue 1, Guingamp vs Rennes) have no
-  `data_version` / `shot_fidelity_version` / `xy_fidelity_version`; check their events before
-  relying on fidelity-dependent fields.
+  `data_version` / `shot_fidelity_version` / `xy_fidelity_version`; their shots and locations
+  look like the rest (EDA sections 5 and 6).
 - Event dicts have heterogeneous keys: `pyarrow.Table.from_pylist` infers the schema from the
   **first row only** and silently drops columns. Infer over all rows (`pa.array(rows)`) or pass
   an explicit schema.
@@ -119,11 +122,17 @@ StatsBomb:
   needs about 1,700 minutes for r = 0.7. Shrink with K per metric (`analysis.reliability`).
   Finishing (goals minus xG per shot) shows no skill in one season (K about 1,600 shots); xG per
   shot is stable (K about 28 shots).
+- **Locations.** A 0.1-yard grid from 0.1 to 120.0 and 0.1 to 80.0; the acting team attacks
+  towards x = 120 with y = 0 on its left, and the same spot seen by the other team is
+  (120.1 - x, 80.1 - y). Set-piece spots (kick-offs at x = 60 or 61, goal kicks at 6 or 7) give
+  away the end of the stadium a team attacks; towards one end on-ball actions sit 2.5 yards
+  further right. Season numbers balance the two ends, single halves do not. Location-based
+  numbers share one scale across leagues.
 - **xG.** Every penalty has xG 0.7835 and most have no freeze frame; shots straight from a
   corner sit at the xG floor (0.00018). Non-penalty xG runs about 4% below goals in every
   league; direct free kicks score 1.6 times their xG, open-play shots under 0.06 xG score less
   than predicted and chances of 0.1 to 0.4 more. Rankings within a comparison group barely
-  change when xG is recalibrated.
+  change when xG is recalibrated, so xG is used as published.
 
 Transfermarkt:
 - **`transfers` is survivorship-biased**: no records for players whose `players.last_season` is

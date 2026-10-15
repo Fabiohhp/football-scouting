@@ -248,3 +248,37 @@ Five years is the longest contract a club could sign in 2016. 2020 is left out b
 56% of the players still valued carried that cut rather than a reading of the season. Players
 who stop being valued are mostly older (median age 33 in 2016), but for young players it says
 something about the career, so dropping them would flatter any model.
+
+## 2026-10-14: How xG is used (EDA section 5)
+
+**Decision.**
+- Attacking output is measured with StatsBomb's non-penalty xG **as published**: no league
+  adjustment and no recalibration. The back-test does not need an own xG model.
+- **Finishing** (non-penalty goals minus xG per shot) is not used to rank players, like goals
+  (2026-10-11).
+- Player profiles show **shot volume** (non-penalty shots per 90) and **shot quality** (xG per
+  shot) next to non-penalty xG per 90. Each is shrunk towards the comparison group's average
+  with its own K: shots per 90 in minutes, xG per shot in shots (about 28), with weight
+  n / (n + K) for a player with n shots.
+
+**Reason.** Over the pool's 37,888 shots, non-penalty xG runs 4% below goals (3,569 goals from
+3,433 xG, about 2.7 standard deviations). Every league sits between +2% and +6% and none differs
+from the others beyond chance, so a league adjustment would correct nothing. The errors are by
+kind of chance: direct free kicks score 1.6 times their xG, open-play shots under 0.06 xG score
+15-18% less than predicted and chances of 0.1 to 0.4 score 10-13% more. An isotonic
+recalibration per shot type, fitted on these shots, barely changes the order of non-penalty xG
+per 90 within each comparison group (Spearman 0.995 to 0.998; 17 to 19 of the top 20 stay).
+Finishing has a split-half reliability of 0.02 or less at 20 shots per half (K about 1,600
+shots), while a regular centre-forward takes a median of 52 non-penalty shots a season. xG per
+shot reaches r = 0.5 at about 28 shots and, within each group, is close to independent of shot
+volume (Spearman -0.14 to +0.04): the two describe different ways to reach the same xG per 90.
+
+## 2026-10-14: Pitch figures with mplsoccer
+
+**Decision.** Figures on a pitch are drawn with mplsoccer (`pitch_type="statsbomb"`). numpy and
+scipy, imported by the package, are declared as direct dependencies.
+**Reason.** mplsoccer is the standard library for football pitch plots and reads StatsBomb's
+120 x 80 coordinates as they are, including the inverted y axis (checked: left backs are drawn
+on the left with play going upwards). The alternative, drawing the pitch by hand in
+`football_scouting.plots`, would mean maintaining pitch geometry for no gain. numpy and scipy
+were only installed through pandas and scikit-learn.

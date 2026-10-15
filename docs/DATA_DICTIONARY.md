@@ -21,8 +21,10 @@ con.sql("SELECT * FROM player_seasons JOIN player_map ON sb_player_id = player_i
 
 ## Conventions
 
-- **Pitch**: 120 x 80 (yards), origin at the top-left corner. Every event is described from
-  the acting team's point of view, attacking towards x = 120.
+- **Pitch**: 120 x 80 (yards), origin at the top-left corner; locations are a 0.1-yard grid
+  (0.1 to 120.0, 0.1 to 80.0). Every event is described from the acting team's point of view,
+  attacking towards x = 120 with y = 0 on its left: an event both teams record sits at (x, y)
+  for one and (120.1 - x, 80.1 - y) for the other.
 - **Time**: `match_seconds` is real time since kick-off. The match clock (`minute`, `second`)
   restarts at 45:00 in the second half, so it is not real time after half-time.
 - **Minutes played** are real time on the pitch, stoppage time included; per-90 metrics use
@@ -248,8 +250,8 @@ Grain: one row per event. Rows: 5,436,699. File: `statsbomb/events.parquet`.
 | `player_id` | `BIGINT` | Player performing the event (null for team events such as Half Start). |
 | `position_id` | `BIGINT` | StatsBomb position id of the player at the time of the event (1-25, see position groups). |
 | `position` | `VARCHAR` | StatsBomb position name. |
-| `x` | `DOUBLE` | Event location, 0-120 along the pitch; the acting team always attacks towards x = 120. |
-| `y` | `DOUBLE` | Event location, 0-80 across the pitch. |
+| `x` | `DOUBLE` | Event location along the pitch, 0.1-120.0 on a 0.1-yard grid; the acting team always attacks towards x = 120. |
+| `y` | `DOUBLE` | Event location across the pitch, 0.1-80.0 (the touchlines); y = 0 is the acting team's left. |
 | `duration` | `DOUBLE` | Length of the event in seconds, where relevant. |
 | `under_pressure` | `BOOLEAN` | Performed while pressured by an opponent (StatsBomb definition, Appendix 7). |
 | `counterpress` | `BOOLEAN` | Pressing action within 5 seconds of an open-play turnover. |

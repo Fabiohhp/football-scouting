@@ -7,7 +7,8 @@
 - **Phase 2, data organisation and quality:** data model, minutes, linkage, quality tests and
   data dictionary done (2026-10-07). EDA notebook in progress: sections 1-3 (minutes and
   groups, reliability, league comparability) done on 2026-10-11, section 4 (market values) on
-  2026-10-12, section 5 (shots and xG) on 2026-10-13.
+  2026-10-12, section 5 (shots and xG) on 2026-10-13, section 6 (event locations) on
+  2026-10-14.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -61,7 +62,7 @@ Phase plan:
   11 on the pitch, team time explained, events within time on the pitch, referential
   integrity, one-to-one links, every column documented). 38 unit tests in `make test`.
 
-### Phase 2: EDA notebook `notebooks/01_data_exploration.ipynb` (2026-10-10 to 2026-10-13)
+### Phase 2: EDA notebook `notebooks/01_data_exploration.ipynb` (2026-10-10 to 2026-10-14)
 - Section 1, minutes and sample size: 2,176 pool players; 1,366 at 900 real minutes. Grouping
   test (AM + W chosen over AM + CM / W + CF), within-league sample test (percentiles pooled),
   age limit for the 450-minute rule (under 23).
@@ -86,30 +87,38 @@ Phase plan:
   no skill in one season; xG per shot (shot selection) is stable (K about 28 shots). Shot volume
   and quality are close to independent within groups (Spearman -0.14 to +0.04). New ratios
   `xg_per_shot` and `finishing`; split-half reliability can be measured in shots.
+- xG decided: StatsBomb's non-penalty xG as published; finishing does not rank players;
+  profiles show shot volume and shot quality (shrunk) next to xG per 90.
+- Section 6, event locations: coordinates are a 0.1-yard grid within 120 x 80 in every league;
+  the direction is as documented (set pieces at their spots, 99.5% of events recorded by both
+  teams mirrored exactly); the end of the stadium a team attacks shifts on-ball actions by 2.5
+  yards across, balanced over a season; each position group acts where it should;
+  location-based numbers (entries into the final third and the box, progressive passes and
+  carries, height of defensive actions) are on one scale across leagues and unaffected by the
+  Premier League's recording change. New helpers `analysis.leagues`; pitch figures with
+  mplsoccer.
 - Data dictionary corrected: a valuation's `current_club_id` is often the player's 2026 club;
   the club name is the club at the valuation date (new data quality test).
-- Decisions in `DECISIONS.md` (2026-10-11 to 2026-10-13).
+- Decisions in `DECISIONS.md` (2026-10-11 to 2026-10-14).
 - Bugs caught while checking the numbers: NULL group minutes in `player_seasons` (fixed at the
   source, new data test), a ratio computed after rescaling in the notebook (fixed). Okazaki's
   date of birth filled (new override file, unit and data tests).
 - `docs/DEVELOPMENT.md`: commands, conventions, rules and data pitfalls.
-- 53 unit tests, 25 data tests.
+- 56 unit tests, 25 data tests.
 
 ## Next
 
-1. The remaining EDA analyses, one at a time: spatial checks, link quality.
+1. The last EDA analysis: link quality.
 2. Phase 3: the order of the scouting analyses.
 
 ## Open questions
 
-- xG (EDA section 5): StatsBomb xG as published or recalibrated, and whether an own xG model
-  belongs in Phase 3; whether finishing appears in player profiles; showing shot volume and
-  shot quality next to xG per 90.
 - How value growth is scored in the back-test: raw growth is mostly age (EDA section 4.6), so
   against players of the same age and comparison group; the exact baseline is a Phase 3
   choice.
 - The meaning of `transfer_fee` 0 vs null (free, loan, unknown) is still unverified.
-- The two matches without fidelity metadata (3878540, 3900563) look normal in the checks so
-  far.
+- Location-based numbers for player profiles (progressive passes and carries, entries into the
+  final third and the box): EDA section 6 used simple versions of the usual definitions; the
+  final definitions are a Phase 3 choice.
 - Before publishing: register interest at statsbomb.com/resource-centre (StatsBomb asks this
   of open-data users) and add the StatsBomb logo from its Media Pack.

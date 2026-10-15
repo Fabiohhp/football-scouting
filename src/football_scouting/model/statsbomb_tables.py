@@ -2,7 +2,8 @@
 
 Conventions applied here (documented in docs/DATA_DICTIONARY.md):
 - Pitch: 120 x 80, origin top-left; every event is seen from the acting team, which attacks
-  towards x = 120 (verified: mean shot x = 103, mean clearance x = 21).
+  towards x = 120 (verified: mean shot x = 103, mean clearance x = 21; checked in full in
+  notebooks/01_data_exploration.ipynb, section 6).
 - Time: `period_seconds` is the time since the start of the period (the event `timestamp`);
   `match_seconds` is real time since kick-off, using the actual length of earlier periods.
 - Flags: StatsBomb only writes boolean attributes when true (no `false` values exist in the
