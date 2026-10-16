@@ -5,6 +5,7 @@ from __future__ import annotations
 import duckdb
 import pytest
 
+from football_scouting.analysis.links import side_by_side, statsbomb_games, transfermarkt_games
 from football_scouting.config import load_config
 from football_scouting.model.statsbomb_tables import EVENT_TABLES
 
@@ -283,6 +284,27 @@ def test_every_player_who_played_is_linked_one_to_one(con):
                  "ON tm_players.player_id = player_map.tm_player_id")
         == 0
     )
+
+
+def test_every_transfermarkt_player_in_a_linked_game_is_linked(con):
+    unlinked = one(
+        con,
+        "SELECT count(DISTINCT a.player_id) FROM tm_appearances a JOIN match_map USING (game_id) "
+        "WHERE a.player_id NOT IN (SELECT tm_player_id FROM player_map)",
+    )
+    assert unlinked == 0
+
+
+def test_linked_players_game_records_agree(con):
+    """Goals, cards and minutes, never used to link players, agree game by game for the linked
+    player (EDA section 7: 99.96%, 99.79% and 99.52% within two minutes)."""
+    sb = statsbomb_games(con)
+    pairs = con.execute("SELECT sb_player_id, team_id, tm_player_id FROM player_team_links").df()
+    games = side_by_side(sb, transfermarkt_games(con), pairs)
+    assert len(games) / len(sb) > 0.998
+    assert (games.sb_goals == games.tm_goals).mean() > 0.999
+    assert (games.sb_cards == games.tm_cards).mean() > 0.995
+    assert ((games.sb_minutes - games.tm_minutes).abs() <= 2).mean() > 0.99
 
 
 def test_valuation_club_name_is_the_club_at_the_time(con):

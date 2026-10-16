@@ -125,7 +125,8 @@ updates are paused: `games` ends 2026-07-06, `appearances` 2026-06-28, `player_v
   has any transfer record (14,153 players in the snapshot; 935 of our 2,175). Even for the
   others, only 61.6% have one. Of the 583 pool players whose main club changed between 2015/16
   and 2016/17, only 38.1% have a matching transfer record (e.g. Higuaín's 2016 move to
-  Juventus is missing). Career moves need `appearances` and the club name on each valuation.
+  Juventus is missing). Career moves need `appearances` and the club name on each valuation
+  (`appearances` only sees 14 leagues; see below).
 - 520 transfers are dated after the snapshot's last game (up to 2030-06-30): announced future
   moves.
 - `transfers.transfer_fee` is present on most rows, but the meaning of 0 vs null (free, loan,
@@ -146,6 +147,20 @@ updates are paused: `games` ends 2026-07-06, `appearances` 2026-06-28, `player_v
   `current_club_name` is the club at the valuation date (the exact 2015/16 club name for 85%;
   the rest are spelling variants and reserve teams), as known transfers confirm (Kanté:
   Leicester City on 1 June 2016, Chelsea FC on 1 August 2016).
+- **`appearances` covers 14 first divisions** (found 2026-10-15,
+  `notebooks/01_data_exploration.ipynb` section 7): the four pool leagues, the Bundesliga,
+  Eredivisie, and the leagues of Portugal, Turkey, Belgium, Russia, Greece, Scotland, Ukraine
+  and Denmark, plus their cups and the European competitions. At least 99.3% of their league
+  games from 2014/15 to 2021/22 have appearances. Players elsewhere (second divisions, other countries) have no games
+  on record but are still valued, with their club named. 21% of pool players were at a club
+  outside the 14 leagues in 2016/17, mostly the clubs relegated in 2015/16, and 32% in
+  2020/21.
+- `players.position` and `sub_position` are the player's latest position, not the 2015/16 one
+  (wingers since turned full-backs, for example).
+- Cards: a second yellow is two yellow cards and no red, as in StatsBomb (`Yellow Card` +
+  `Second Yellow`), but the two sources occasionally disagree on whether a dismissal was a
+  second yellow or a straight red. Goals, cards and minutes agree with StatsBomb in 99.5% or
+  more of linked player-matches.
 
 **License and attribution.** The dataset repository is licensed CC0-1.0. The data itself comes
 from transfermarkt.com, and we credit Transfermarkt as the original source alongside the

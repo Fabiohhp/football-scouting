@@ -5,10 +5,10 @@
 - **Phase 0, setup:** done (2026-10-06).
 - **Phase 1, data collection:** done (2026-10-06).
 - **Phase 2, data organisation and quality:** data model, minutes, linkage, quality tests and
-  data dictionary done (2026-10-07). EDA notebook in progress: sections 1-3 (minutes and
-  groups, reliability, league comparability) done on 2026-10-11, section 4 (market values) on
-  2026-10-12, section 5 (shots and xG) on 2026-10-13, section 6 (event locations) on
-  2026-10-14.
+  data dictionary done (2026-10-07). EDA notebook done: sections 1-3 (minutes and groups,
+  reliability, league comparability) on 2026-10-11, section 4 (market values) on 2026-10-12,
+  section 5 (shots and xG) on 2026-10-13, section 6 (event locations) on 2026-10-14, section 7
+  (link quality) on 2026-10-15.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -62,7 +62,7 @@ Phase plan:
   11 on the pitch, team time explained, events within time on the pitch, referential
   integrity, one-to-one links, every column documented). 38 unit tests in `make test`.
 
-### Phase 2: EDA notebook `notebooks/01_data_exploration.ipynb` (2026-10-10 to 2026-10-14)
+### Phase 2: EDA notebook `notebooks/01_data_exploration.ipynb` (2026-10-10 to 2026-10-15)
 - Section 1, minutes and sample size: 2,176 pool players; 1,366 at 900 real minutes. Grouping
   test (AM + W chosen over AM + CM / W + CF), within-league sample test (percentiles pooled),
   age limit for the 450-minute rule (under 23).
@@ -97,25 +97,38 @@ Phase plan:
   carries, height of defensive actions) are on one scale across leagues and unaffected by the
   Premier League's recording change. New helpers `analysis.leagues`; pitch figures with
   mplsoccer.
+- Section 7, link quality: games played and name each single the player out for 93.6% of the
+  2,279 pool links, and one decides where the other ties. Goals, cards and minutes, never used
+  to match, agree in 99.96%, 99.79% and 99.52% (within two minutes) of the 42,056 player-matches
+  both sources record. On five independent checks, 98.4% of the best alternative candidates
+  disagree on two or more; six links do, all right on inspection, so at most about 3 of 2,277
+  links are wrong (95% confidence). Every Transfermarkt player in a pool game is linked back.
+  Transfermarkt's appearances cover 14 first divisions: 21% of pool players were outside them in
+  2016/17 and 32% in 2020/21, still valued with their club named. New helpers `analysis.links`;
+  two new data quality tests.
 - Data dictionary corrected: a valuation's `current_club_id` is often the player's 2026 club;
-  the club name is the club at the valuation date (new data quality test).
+  the club name is the club at the valuation date (new data quality test). Transfermarkt's
+  `position` and `sub_position` are the latest position, marked as snapshot columns.
 - Decisions in `DECISIONS.md` (2026-10-11 to 2026-10-14).
 - Bugs caught while checking the numbers: NULL group minutes in `player_seasons` (fixed at the
   source, new data test), a ratio computed after rescaling in the notebook (fixed). Okazaki's
   date of birth filled (new override file, unit and data tests).
 - `docs/DEVELOPMENT.md`: commands, conventions, rules and data pitfalls.
-- 56 unit tests, 25 data tests.
+- 58 unit tests, 27 data tests.
 
 ## Next
 
-1. The last EDA analysis: link quality.
-2. Phase 3: the order of the scouting analyses.
+1. Phase 3: the order of the scouting analyses.
 
 ## Open questions
 
 - How value growth is scored in the back-test: raw growth is mostly age (EDA section 4.6), so
   against players of the same age and comparison group; the exact baseline is a Phase 3
   choice.
+- How careers are scored in the back-test: Transfermarkt's appearances cover 14 first
+  divisions only (EDA section 7.4), so a fifth to a third of pool players have no games on
+  record in a given later season while still valued; values, the club named on each valuation
+  and games in covered leagues are the candidates, to be chosen in Phase 3.
 - The meaning of `transfer_fee` 0 vs null (free, loan, unknown) is still unverified.
 - Location-based numbers for player profiles (progressive passes and carries, entries into the
   final third and the box): EDA section 6 used simple versions of the usual definitions; the

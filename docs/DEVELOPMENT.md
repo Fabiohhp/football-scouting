@@ -71,7 +71,10 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
     and each player's value (and its age) on a date;
   - `leagues.eta_squared` and `leagues.league_effect`: how much of a number the league
-    explains, between team-matches and for players within comparison group.
+    explains, between team-matches and for players within comparison group;
+  - `links.statsbomb_games`, `links.transfermarkt_games` and `links.side_by_side`: each
+    player-match's goals, cards and minutes (match clock) in both sources, lined up for any
+    pairing of StatsBomb and Transfermarkt players (checks of the links).
 - Figures use `football_scouting.plots`: `use_style()`, `position_colors(cfg)` and
   `credit(fig)` for the source line. Pitches are drawn with mplsoccer
   (`pitch_type="statsbomb"`).
@@ -87,7 +90,7 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
 - **No leakage.** Features use 2015/16 information only. Outcomes (later market values,
   transfers, careers) live in separate tables and are never joined into feature code.
   Transfermarkt snapshot columns (current club and value, highest value, contract, caps,
-  agent, squad values) describe 2026 and are outcomes only.
+  agent, positions, squad values) describe 2026 and are outcomes only.
 - **Every claim about the data is checked against the files**, with counts: what a field
   means, what a table covers, how many rows a rule affects.
 
@@ -140,6 +143,11 @@ Transfermarkt:
   and the club on each valuation for careers.
 - `games.season` 2015 means 2015/16. Competition codes: GB1, ES1, IT1, FR1, L1. `appearances`
   only contains players who played.
+- **`appearances` covers 14 first divisions** (the pool leagues, Bundesliga, Eredivisie,
+  Portugal, Turkey, Belgium, Russia, Greece, Scotland, Ukraine, Denmark), their cups and
+  European competitions. A player elsewhere has no games on record but is still valued with
+  the club named: 21% of pool players in 2016/17 (mostly relegated clubs), 32% in 2020/21.
+  Never read "no appearances" as "no career".
 - Valuations are irregular in time: "value at date X" is the latest valuation on or before X,
   and its age is kept. 520 transfers are future-dated (up to 2030).
 - **Valuations come in league batches**: on 30 June 2016 most values date from January or

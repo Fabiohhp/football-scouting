@@ -158,7 +158,7 @@ def link_matches(con: duckdb.DuckDBPyConnection, cfg: Config) -> tuple[pd.DataFr
 # -- players -------------------------------------------------------------------------------
 
 
-def _player_evidence(
+def player_evidence(
     con: duckdb.DuckDBPyConnection, cfg: Config, team_map: pd.DataFrame, match_map: pd.DataFrame
 ) -> pd.DataFrame:
     """One row per (StatsBomb player-team-season, Transfermarkt candidate) with the evidence."""
@@ -264,7 +264,7 @@ def load_overrides(path: Path = OVERRIDES_PATH) -> pd.DataFrame:
 def resolve_players(con: duckdb.DuckDBPyConnection, cfg: Config) -> dict[str, pd.DataFrame]:
     """Run the whole linkage; return the tables to write (see module docstring)."""
     team_map, match_map = link_matches(con, cfg)
-    links = assign(score_candidates(_player_evidence(con, cfg, team_map, match_map)))
+    links = assign(score_candidates(player_evidence(con, cfg, team_map, match_map)))
     links["method"] = "auto"
     links["reason"] = None
 

@@ -693,8 +693,8 @@ Grain: one row per player. Rows: 50,149. File: `transfermarkt/players.parquet`.
 | `city_of_birth` | `VARCHAR` | City of birth. |
 | `country_of_citizenship` | `VARCHAR` | Citizenship. |
 | `date_of_birth` | `DATE` | Date of birth (gaps filled by hand from `config/date_of_birth_overrides.csv`, with sources). |
-| `sub_position` | `VARCHAR` | Detailed position (e.g. Centre-Forward). |
-| `position` | `VARCHAR` | Broad position (Goalkeeper, Defender, Midfield, Attack). |
+| `sub_position` | `VARCHAR` | Snapshot: detailed position, the latest (e.g. Centre-Forward). |
+| `position` | `VARCHAR` | Snapshot: broad position, the latest (Goalkeeper, Defender, Midfield, Attack). |
 | `foot` | `VARCHAR` | Preferred foot. |
 | `height_in_cm` | `BIGINT` | Height. |
 | `contract_expiration_date` | `DATE` | Snapshot: current contract end. |

@@ -462,8 +462,8 @@ tables:
       city_of_birth: City of birth.
       country_of_citizenship: Citizenship.
       date_of_birth: Date of birth (gaps filled by hand from `config/date_of_birth_overrides.csv`, with sources).
-      sub_position: Detailed position (e.g. Centre-Forward).
-      position: Broad position (Goalkeeper, Defender, Midfield, Attack).
+      sub_position: "Snapshot: detailed position, the latest (e.g. Centre-Forward)."
+      position: "Snapshot: broad position, the latest (Goalkeeper, Defender, Midfield, Attack)."
       foot: Preferred foot.
       height_in_cm: Height.
       contract_expiration_date: "Snapshot: current contract end."
