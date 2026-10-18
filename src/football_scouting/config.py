@@ -87,6 +87,7 @@ class Config:
     transfermarkt: TransfermarktConfig
     position_groups: tuple[PositionGroup, ...]
     comparison_groups: tuple[ComparisonGroup, ...]
+    profiles: dict[str, tuple[str, ...]]  # comparison group code -> statistics (metric names)
     backtest: BacktestConfig
     http: HttpConfig
 
@@ -126,6 +127,9 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
     members = sorted(m for g in comparison_groups for m in g.members)
     if members != sorted(g.code for g in position_groups):
         raise ValueError("every position group must belong to exactly one comparison group")
+    profiles = {g: tuple(ms) for g, ms in raw["profiles"].items()}
+    if not set(profiles) <= {g.code for g in comparison_groups}:
+        raise ValueError("profiles must be keyed by comparison group codes")
     bt = raw["backtest"]
     backtest = BacktestConfig(
         market_view=bt["market_view"],
@@ -143,6 +147,7 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
         transfermarkt=transfermarkt,
         position_groups=position_groups,
         comparison_groups=comparison_groups,
+        profiles=profiles,
         backtest=backtest,
         http=HttpConfig(**raw["http"]),
     )

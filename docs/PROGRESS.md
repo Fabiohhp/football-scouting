@@ -9,13 +9,14 @@
   reliability, league comparability) on 2026-10-11, section 4 (market values) on 2026-10-12,
   section 5 (shots and xG) on 2026-10-13, section 6 (event locations) on 2026-10-14, section 7
   (link quality) on 2026-10-15.
+- **Phase 3, scouting analyses:** started 2026-10-17 (scope and order in `DECISIONS.md`).
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
   dictionary, EDA notebook.
-- Phase 3: statistical scouting analyses as notebooks (candidates: player profiles, an own xG
-  model, possession value, role discovery, similarity search, market value and the
-  recruitment back-test, team style, scouting reports, a recruitment case study).
+- Phase 3: statistical scouting analyses as notebooks, in order: player profiles, possession
+  value (xT), market value and the recruitment back-test, role discovery, similarity search and
+  replacements, team style, a recruitment case study with scouting reports.
 - Phase 4: README for recruiters (findings and figures first), clean narrative notebooks, CI.
 
 ## Done
@@ -116,9 +117,30 @@ Phase plan:
 - `docs/DEVELOPMENT.md`: commands, conventions, rules and data pitfalls.
 - 58 unit tests, 27 data tests.
 
+### Phase 3: Player profiles `notebooks/02_player_profiles.ipynb` (from 2026-10-17)
+- Section 1, which numbers describe a player: 46 candidate statistics in seven families
+  (`analysis.metrics`), among them xA, long passes, switches, through balls, aerial duels,
+  counterpressures, ball losses per touch and progressive passes and carries under three rules.
+  Reliability at 900 minutes measured within each comparison group: it depends on the group (xG
+  per 90 0.66 among attacking midfielders and wingers, 0.18 among centre-backs; aerial duels won
+  0.74 among centre-forwards, 0.33 among centre-backs); cross completion, dribble success,
+  dribblers tackled and finishing are noise in every group. Fouls won and times dribbled past
+  carry league gaps (refereeing, opposition); the team explains passing volume (0.48) and pass
+  completion (0.38) most. Progressive passes: the 10-yard rule mostly re-counts passing volume
+  (Spearman 0.84 with passes, team share 0.21); zones and 25% closer measure progress (0.60,
+  0.08). Twelve statistics per group, none correlated at 0.8 or more with another.
+- Decided (`DECISIONS.md`, 2026-10-18): twelve statistics per group (`profiles` in the
+  config), Wyscout's zones for progressive passes and carries, fouls won and times dribbled past
+  left out, counterpressures and pressures in the final third within recording context, and
+  shrinkage with one K per statistic and comparison group.
+- New helpers: `metrics.FAMILIES`, `metrics.progressive`, `leagues.team_effect`. 62 unit tests,
+  28 data tests (new: progressive rules, team effect against chance, profiles name known
+  statistics, the new counts reconcile with the event tables, aerial duels won equal lost in
+  every match).
+
 ## Next
 
-1. Phase 3: the order of the scouting analyses.
+1. Player profiles, section 2: possession and the team's style.
 
 ## Open questions
 
@@ -129,9 +151,7 @@ Phase plan:
   divisions only (EDA section 7.4), so a fifth to a third of pool players have no games on
   record in a given later season while still valued; values, the club named on each valuation
   and games in covered leagues are the candidates, to be chosen in Phase 3.
+- Whether VAEP is added after xT, depending on what xT shows.
 - The meaning of `transfer_fee` 0 vs null (free, loan, unknown) is still unverified.
-- Location-based numbers for player profiles (progressive passes and carries, entries into the
-  final third and the box): EDA section 6 used simple versions of the usual definitions; the
-  final definitions are a Phase 3 choice.
 - Before publishing: register interest at statsbomb.com/resource-centre (StatsBomb asks this
   of open-data users) and add the StatsBomb logo from its Media Pack.

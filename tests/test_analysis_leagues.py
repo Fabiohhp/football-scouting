@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from football_scouting.analysis.leagues import eta_squared, league_effect
+from football_scouting.analysis.leagues import eta_squared, league_effect, team_effect
 
 
 def test_eta_squared_is_the_share_explained_by_the_label():
@@ -35,3 +35,15 @@ def test_league_effect_skips_missing_values():
         {"group": ["g"] * 4, "league": ["A", "A", "B", "B"], "rate": [1.0, np.nan, 3.0, 3.0]}
     )
     assert league_effect(d, "rate")["A"] == pytest.approx(-400 / 7)  # (1 - 7/3) / (7/3)
+
+
+def test_team_effect_is_adjusted_for_chance():
+    # 60 teams with two players in each of two groups.
+    rng = np.random.default_rng(0)
+    d = pd.DataFrame({"team": np.repeat(np.arange(60), 4), "group": ["g1", "g1", "g2", "g2"] * 60})
+    strength = rng.normal(size=60)
+    d["shared"] = 5 * (d.group == "g2") + np.repeat(strength, 4) + rng.normal(size=len(d))
+    d["unrelated"] = 5 * (d.group == "g2") + rng.normal(size=len(d))
+    # Team variance 1, player variance 1: the team explains half of what the group leaves.
+    assert team_effect(d, "shared") == pytest.approx(0.5, abs=0.1)
+    assert team_effect(d, "unrelated") == pytest.approx(0.0, abs=0.06)

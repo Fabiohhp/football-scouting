@@ -39,7 +39,7 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   Makefile targets; `notebooks/` hold the analyses and import their logic from the package;
   `reports/figures/` holds the figures used by the README.
 - All parameters (sources, pinned versions, competitions, seasons, position and comparison
-  groups, back-test dates, paths, HTTP retry policy) come from `config/pipeline.yaml` via
+  groups, profiles, back-test dates, paths, HTTP retry policy) come from `config/pipeline.yaml` via
   `football_scouting.config.load_config()`. No hard-coded IDs or paths in code.
 - Pipeline steps are idempotent and resumable: cached downloads (`http.fetch_json_cached`),
   atomic writes (`.part` + rename), retries with exponential backoff, existing files skipped.
@@ -65,13 +65,15 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   - `players.pool_player_seasons`: one row per pool player, minutes summed over clubs, primary
     position group, comparison group, age on a given date;
   - `metrics.player_match_counts` and `metrics.rates`: event counts per player and match, then
-    per-90 rates and ratios (xG per shot and finishing among them) from any sum of rows;
+    46 per-90 rates and ratios from any sum of rows, in seven `FAMILIES` (definitions in the
+    module docstring; progressive passes and carries under three rules, `metrics.progressive`);
   - `reliability`: split-half reliability and the stabilisation constant K per metric, in
     minutes or, with `budget="shots"`, in shots for per-shot ratios;
   - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
     and each player's value (and its age) on a date;
-  - `leagues.eta_squared` and `leagues.league_effect`: how much of a number the league
-    explains, between team-matches and for players within comparison group;
+  - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a
+    number the league explains, between team-matches and for players within comparison group,
+    and how much the team explains beyond chance;
   - `links.statsbomb_games`, `links.transfermarkt_games` and `links.side_by_side`: each
     player-match's goals, cards and minutes (match clock) in both sources, lined up for any
     pairing of StatsBomb and Transfermarkt players (checks of the links).
@@ -79,7 +81,8 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   `credit(fig)` for the source line. Pitches are drawn with mplsoccer
   (`pitch_type="statsbomb"`).
 - Players are compared within the six `comparison_groups` of the config, not the seven
-  position groups.
+  position groups, and read through the twelve statistics of their group's profile
+  (`profiles` in the config).
 
 ## Rules that protect the analysis
 
@@ -119,12 +122,20 @@ StatsBomb:
 - **Recording changes.** From 2015-12-28 (match week 19) the Premier League records about 3x
   the interceptions, 18% more pressures and 16% more clearances; interceptions also differ
   about 1.6x between leagues. Never compare raw interceptions, pressures or clearances across
-  leagues or across that date. Attacking and passing numbers share one scale (league partial
+  leagues or across that date; counterpressures (+14%) and pressures in the final third (+21%)
+  change with pressures. Attacking and passing numbers share one scale (league partial
   η² <= 0.03).
 - **Reliability.** Goals and dribble success are mostly noise over one season; non-penalty xG
-  needs about 1,700 minutes for r = 0.7. Shrink with K per metric (`analysis.reliability`).
-  Finishing (goals minus xG per shot) shows no skill in one season (K about 1,600 shots); xG per
-  shot is stable (K about 28 shots).
+  needs about 1,700 minutes for r = 0.7. Finishing (goals minus xG per shot) shows no skill in
+  one season (K about 1,600 shots); xG per shot is stable (K about 28 shots). Reliability
+  depends on the comparison group: at 900 minutes xG per 90 is 0.66 among attacking midfielders
+  and wingers, 0.18 among centre-backs. Shrink with K per metric and comparison group
+  (`analysis.reliability`).
+- **Contests.** An aerial duel is won on the winner's action (`aerial_won` on a pass,
+  clearance, shot or miscontrol) and lost as a Duel of type Aerial Lost: equal counts in every
+  match. Every completed dribble leaves a Dribbled Past event for the defender. Fouls won follow
+  the league's refereeing (Serie A a third more per match than the Premier League), and times
+  dribbled past the opposition's dribbling (more in the Premier League and La Liga).
 - **Locations.** A 0.1-yard grid from 0.1 to 120.0 and 0.1 to 80.0; the acting team attacks
   towards x = 120 with y = 0 on its left, and the same spot seen by the other team is
   (120.1 - x, 80.1 - y). Set-piece spots (kick-offs at x = 60 or 61, goal kicks at 6 or 7) give

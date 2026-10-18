@@ -192,6 +192,7 @@ non-penalty xG stands in for goals.
 not make the main scouting numbers trustworthy, for regulars as much as for young players.
 r = M / (M + K) fits the measured curves within 10% at every M. A chronological split was
 rejected because it mixes noise with real change (form, injuries, coaches).
+K is measured per statistic and comparison group from 2026-10-18.
 
 ## 2026-10-11: Defensive numbers are compared within recording context (EDA section 3)
 
@@ -282,3 +283,65 @@ scipy, imported by the package, are declared as direct dependencies.
 on the left with play going upwards). The alternative, drawing the pitch by hand in
 `football_scouting.plots`, would mean maintaining pitch geometry for no gain. numpy and scipy
 were only installed through pandas and scikit-learn.
+
+## 2026-10-17: Phase 3 scope and order
+
+**Decision.** Phase 3 builds one notebook per analysis, in this order: (1) player profiles,
+(2) possession value, (3) market value and the recruitment back-test, (4) role discovery,
+(5) similarity search and replacements, (6) team style, (7) a recruitment case study, which
+includes one-page scouting reports (HTML) for its shortlist. Possession value starts with
+expected threat (xT), implemented in the package; VAEP is considered once the xT results are
+in. There is no own xG model. The 2022 World Cup positional and tracking module is left as a
+possible extension after Phase 4.
+**Reason.** Profiles are the input of every later analysis. The back-test is the project's core
+question and its riskiest analysis, so it comes as soon as its inputs exist; roles, similarity
+and team style refine it. xT values passes, carries and dribbles from the event locations
+alone; socceraction 1.5.3, the reference VAEP implementation, requires `numpy<2`, and with the
+pinned numpy 2.5 the resolver falls back to socceraction 1.1.1 (2021). An own xG model would not
+change the back-test: StatsBomb's xG is used as published, since recalibrating it barely changes
+rankings within groups (2026-10-14). The tracking module needs new data (StatsBomb 360 and PFF
+tracking) and does not feed the back-test.
+
+## 2026-10-18: The player profiles (notebook 02, section 1)
+
+**Decision.**
+- Each outfield comparison group is read through **twelve statistics** (`profiles` in
+  `config/pipeline.yaml`). Each is reliable within the group (split-half correlation of 0.4 or
+  more at 900 minutes), no two correlate at 0.8 or more (Spearman, within the group), and
+  together they cover what the role does. Goals, finishing and dribble success stay out
+  (2026-10-11, 2026-10-14). Position descriptors (touch position, width, height of defensive
+  actions) describe a role rather than how well it is played and are kept for role discovery.
+- Progressive passes and carries follow **Wyscout's zones**: the ball ends at least 30 m closer
+  to the centre of the goal within the own half, 15 m from the own half into the other, 10 m
+  within the other half (on a 105 m pitch).
+- **Fouls won and times dribbled past** are in no profile, and are not rescaled by league.
+- **Counterpressures and pressures in the final third** are compared within recording context,
+  like pressures (2026-10-11).
+- **Shrinkage uses one K per statistic and comparison group**, measured within the group. This
+  replaces the single K per statistic of 2026-10-11.
+
+**Reason.**
+- Progressive passes: FBref's 10-yard rule mostly re-counts passing volume (median Spearman
+  with open-play passes 0.84 within group; the team explains 0.21 of it). Zones and 25% closer
+  measure progress (0.60 and 0.62 with passes; team 0.08 and 0.09) and rank players almost the
+  same way (0.91 to 0.98). All three are equally reliable (0.69 to 0.70 at 900 minutes), and
+  for carries they agree (0.94 to 0.98). Zones is an industry standard and treats passes and
+  carries alike.
+- The profiles: the least reliable statistic in each group sits at 0.41 to 0.50, the closest
+  pair at 0.65 to 0.76. Among centre-backs, the share of aerial duels won (0.33; half of them
+  win between 61% and 70%), interceptions (0.37) and blocks (0.19) fall below 0.4.
+- Fouls won follow the league's refereeing: 12.0 per team and match in the Premier League, 15.9
+  in Serie A (league partial η² 0.063 within comparison group). Times dribbled past follow the
+  opposition's dribbling (0.061; 10.6 completed dribbles per team and match in the Premier
+  League and La Liga, 8.4 and 8.8 in Serie A and Ligue 1). Dribblers tackled, the rate that
+  would correct for the opposition, is noise in every group. A rescale would fix the level
+  without making either number about the player.
+- From match week 19 the Premier League records 14% more counterpressures and 21% more
+  pressures in the final third per 90; no other league changes by more than 7%.
+- Reliability differs widely between groups: at 900 minutes non-penalty xG per 90 is 0.66 among
+  attacking midfielders and wingers and 0.18 among centre-backs (K about 470 and 4,000
+  minutes), the share of aerial duels won 0.74 among centre-forwards and 0.33 among
+  centre-backs. With the single K for xG (720 minutes), a centre-back with 2,700 minutes keeps
+  79% of their own rate; with the centre-backs' K, 40%. Each group's K rests on fewer players
+  (79 centre-forwards to 186 central midfielders with 900 minutes in both halves, against 702
+  outfield players together), so it is less precise.

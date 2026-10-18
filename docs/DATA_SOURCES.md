@@ -67,6 +67,13 @@ version 2, except the two noted below.
   x = 60 or 61, goal kicks at x = 6 or 7), and in its half towards one end a team's passes,
   carries and receptions sit about 0.6 yards further forward and 2.5 yards further right.
   Every team plays one half towards each end.
+- **Contests between two players** (found 2026-10-17, `notebooks/02_player_profiles.ipynb`
+  section 1). An aerial duel is recorded twice: as won, a flag `aerial_won` on the winner's
+  pass, clearance, shot or miscontrol, and as lost, a Duel of type Aerial Lost for the other
+  player; the two counts are equal in all 1,517 pool matches (64,925 each). Every completed
+  dribble has a Dribbled Past event of the other team within two seconds (1.09 to 1.11 per
+  completed dribble in every league). Fouls won per team and match range from 12.0 (Premier
+  League) to 15.9 (Serie A).
 
 **Terms of use** ([`LICENSE.pdf`](https://github.com/statsbomb/open-data/blob/master/LICENSE.pdf),
 "StatsBomb Public Data User Agreement", last updated 8 September 2023, plus the repo README):

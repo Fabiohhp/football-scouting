@@ -77,6 +77,23 @@ comparison_groups:
   - {code: AMW, name: Attacking midfielders and wingers, members: [AM, W]}
   - {code: CF, name: Centre-forwards, members: [CF]}
 
+# The statistics each outfield comparison group's profile is read through (decided 2026-10-18;
+# evidence in notebooks/02_player_profiles.ipynb, section 1): names of `analysis.metrics` rates
+# and ratios, each reliable within its group (0.4 or more at 900 minutes), no two at a Spearman
+# correlation of 0.8 or more. Progressive passes and carries follow Wyscout's zones.
+profiles:
+  CB: [passes, pass_completion, long_passes, switches, progressive_passes_zones,
+       progressive_carries_zones, aerial_duels, clearances, tackles, recoveries, pressures,
+       ball_losses_per_touch]
+  FB: [passes, pass_completion, progressive_passes_zones, progressive_carries_zones, crosses,
+       passes_into_box, key_passes, dribbles, touches_in_box, pressures, tackles, recoveries]
+  CM: [passes, pass_completion, long_passes, progressive_passes_zones, progressive_carries_zones,
+       key_passes, xg, ball_losses_per_touch, pressures, tackles, interceptions, recoveries]
+  AMW: [xg, shots, xg_per_shot, key_passes, passes_into_box, crosses, dribbles,
+        progressive_carries_zones, pass_completion, ball_losses_per_touch, pressures, tackles]
+  CF: [xg, shots, xg_per_shot, touches_in_box, passes_into_box, aerial_duels, aerial_win_rate,
+       passes, pass_completion, dribbles, ball_losses_per_touch, pressures]
+
 # The recruitment back-test (decided 2026-10-13; evidence in
 # notebooks/01_data_exploration.ipynb, section 4). Players are judged on 2015/16 data and on the
 # market value a club could see on `market_view`. Value growth is measured from `outcome_base`,
