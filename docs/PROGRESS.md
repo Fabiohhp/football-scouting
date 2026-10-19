@@ -10,6 +10,7 @@
   section 5 (shots and xG) on 2026-10-13, section 6 (event locations) on 2026-10-14, section 7
   (link quality) on 2026-10-15.
 - **Phase 3, scouting analyses:** started 2026-10-17 (scope and order in `DECISIONS.md`).
+  Player profiles: section 1 on 2026-10-17, section 2 (possession) on 2026-10-18.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -133,14 +134,32 @@ Phase plan:
   config), Wyscout's zones for progressive passes and carries, fouls won and times dribbled past
   left out, counterpressures and pressures in the final third within recording context, and
   shrinkage with one K per statistic and comparison group.
-- New helpers: `metrics.FAMILIES`, `metrics.progressive`, `leagues.team_effect`. 62 unit tests,
-  28 data tests (new: progressive rules, team effect against chance, profiles name known
-  statistics, the new counts reconcile with the event tables, aerial duels won equal lost in
-  every match).
+- Section 2, possession: time with the ball (gaps between events capped at 10 s) agrees with
+  the share of passes (0.97 per match); teams range from 39% (Carpi) to 65% (Barcelona) over the
+  season. Season figures tie the statistics made with the ball to possession (open-play passes
+  0.74 to 0.84 among defenders and central midfielders) but cannot tell possession from the
+  players a team with the ball can afford, so the dependence is measured within players
+  (Poisson with a fixed effect per player): counts with the ball grow faster than the team's
+  time with it (progressive passes 1.23 to 1.48), except forwards'; counts without the ball
+  grow more slowly than the opponent's time (tackles 0.16 to 0.51); recoveries and
+  centre-backs' aerial duels rise with the team's own possession. Adjusting by these
+  elasticities takes possession out of both kinds (median correlation 0.10 and 0.02) at a small
+  cost in reliability (one statistic below 0.4: full-backs' key passes, 0.35); in proportion to
+  the time, and StatsBomb's PAdj far more, overshoot on defensive counts. On 31 players who
+  changed teams, the elasticities predict the right size of change (slope 0.97, 95% interval
+  0.50 to 1.59), PAdj changes five times too large. Pass completion, not adjusted, still
+  depends on the team (team share 0.41 to 0.60 among defenders and central midfielders).
+- New helpers: `metrics.FAMILIES`, `metrics.progressive`, `leagues.team_effect`,
+  `analysis.possession`; `reliability.split_half_reliability` takes a rate function. 70 unit
+  tests, 30 data tests (new: progressive rules, team effect against chance, profiles name known
+  statistics, possession time on toy matches, the within-player elasticity against a
+  confounded simulation, the new counts reconcile with the event tables, aerial duels won equal
+  lost in every match, possession time adds up between teams and players).
 
 ## Next
 
-1. Player profiles, section 2: possession and the team's style.
+1. Player profiles, section 3: the final profiles (possession-adjusted, rescaled by recording
+   context, shrunk with each group's K, percentiles within group).
 
 ## Open questions
 
@@ -152,6 +171,13 @@ Phase plan:
   record in a given later season while still valued; values, the club named on each valuation
   and games in covered leagues are the candidates, to be chosen in Phase 3.
 - Whether VAEP is added after xT, depending on what xT shows.
+- The possession adjustment of the profiles (notebook 02, section 2): each per-90 statistic by
+  its group's measured elasticity; pass completion and the other ratios as recorded.
+- Full-backs' key passes fall below 0.4 reliability once adjusted for possession (0.41 to
+  0.35): kept, dropped or replaced in the full-backs' profile.
+- Pass completion depends on the team after possession (team share up to 0.60 among
+  centre-backs): kept as recorded, or replaced by completion over an expected completion that
+  accounts for each pass's difficulty.
 - The meaning of `transfer_fee` 0 vs null (free, loan, unknown) is still unverified.
 - Before publishing: register interest at statsbomb.com/resource-centre (StatsBomb asks this
   of open-data users) and add the StatsBomb logo from its Media Pack.

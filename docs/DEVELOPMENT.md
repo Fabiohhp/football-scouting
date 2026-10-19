@@ -68,7 +68,12 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     46 per-90 rates and ratios from any sum of rows, in seven `FAMILIES` (definitions in the
     module docstring; progressive passes and carries under three rules, `metrics.progressive`);
   - `reliability`: split-half reliability and the stabilisation constant K per metric, in
-    minutes or, with `budget="shots"`, in shots for per-shot ratios;
+    minutes or, with `budget="shots"`, in shots for per-shot ratios, and of adjusted rates
+    (`rate_fn`);
+  - `possession.team_possession` and `possession.player_possession`: time with the ball per team
+    and match, and each player's team's and opponent's time while on the pitch;
+    `possession.elasticity`: how much a count depends on possession, within players (Poisson,
+    a fixed effect per player); `possession.adjust_rates`: rates put on an even share;
   - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
     and each player's value (and its age) on a date;
   - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a
@@ -136,6 +141,12 @@ StatsBomb:
   match. Every completed dribble leaves a Dribbled Past event for the defender. Fouls won follow
   the league's refereeing (Serie A a third more per match than the Premier League), and times
   dribbled past the opposition's dribbling (more in the Premier League and La Liga).
+- **Possession.** An event's `possession_team_id` is the team in control, also on the
+  opponent's events; a recovery, tackle or interception often starts the acting team's
+  possession (77% of ball recoveries, 42% of tackles and 34% of interceptions are recorded in
+  it).
+  Whether an action was made with or without the ball follows from its type, not its possession
+  team. Time with the ball: gaps between events capped at 10 seconds (`analysis.possession`).
 - **Locations.** A 0.1-yard grid from 0.1 to 120.0 and 0.1 to 80.0; the acting team attacks
   towards x = 120 with y = 0 on its left, and the same spot seen by the other team is
   (120.1 - x, 80.1 - y). Set-piece spots (kick-offs at x = 60 or 61, goal kicks at 6 or 7) give

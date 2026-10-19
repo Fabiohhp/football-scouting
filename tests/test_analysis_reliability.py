@@ -57,3 +57,20 @@ def test_reliability_in_shots_for_a_per_shot_ratio():
     assert curve["shots"].ge(10).all()  # mean shots per half, at least the target
     k = stabilisation_minutes(curve, ["finishing"], budget="shots")["finishing"]
     assert k == pytest.approx(37, rel=0.25)
+
+
+def test_reliability_of_a_rate_from_extra_columns():
+    # No signal in shots, but a per-match amount fixed for each player: perfectly reliable.
+    counts = synthetic_counts(np.full(300, 2.0))
+    counts["bonus"] = np.repeat(np.random.default_rng(4).uniform(1, 5, 300), 30)
+    context = pd.Series("all", index=np.arange(300))
+    curve = split_half_reliability(
+        counts,
+        context,
+        ["bonus_per_90"],
+        [450],
+        draws=3,
+        columns=["minutes", "bonus"],
+        rate_fn=lambda s: (s["bonus"] / s["minutes"] * 90).rename("bonus_per_90").to_frame(),
+    )
+    assert curve["bonus_per_90"].min() > 0.99

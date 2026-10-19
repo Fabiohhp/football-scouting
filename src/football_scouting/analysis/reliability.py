@@ -20,7 +20,7 @@ empirical-Bayes estimate gives a player's own rate against the group mean.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -38,12 +38,16 @@ def split_half_reliability(
     draws: int = 50,
     seed: int = 2016,
     budget: str = "minutes",
+    columns: Sequence[str] = SUMMED,
+    rate_fn: Callable[[pd.DataFrame], pd.DataFrame] = rates,
 ) -> pd.DataFrame:
     """One row per draw and target: players used, mean budget per half, r per metric.
 
     `counts` has one row per player and match (`player_id` and the `SUMMED` columns, as from
     `player_match_counts`); `context` maps player_id to the label rates are centred within.
     `minutes` are the targets, in units of the `budget` column (minutes unless set).
+    `rate_fn` turns each half's sums of `columns` into the metrics: `rates` by default, or,
+    with more columns, an adjusted rate.
     """
     rng = np.random.default_rng(seed)
     rows = []
@@ -54,10 +58,10 @@ def split_half_reliability(
         for target in minutes:
             # Matches each half needs to reach the target, in shuffled order.
             sums = d[d["cum"] - d[budget] < target].groupby(["player_id", "half"])
-            sums = sums[SUMMED].sum()
+            sums = sums[list(columns)].sum()
             per_half = sums[budget].unstack("half")
             ok = per_half.index[per_half.ge(target).all(axis=1)]
-            r = rates(sums.loc[sums.index.get_level_values("player_id").isin(ok)])
+            r = rate_fn(sums.loc[sums.index.get_level_values("player_id").isin(ok)])
             ctx = context.reindex(r.index.get_level_values("player_id")).to_numpy()
             half = r.index.get_level_values("half").to_numpy()
             centred = r[list(metrics)] - r[list(metrics)].groupby([ctx, half]).transform("mean")
