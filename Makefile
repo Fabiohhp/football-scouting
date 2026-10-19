@@ -1,6 +1,6 @@
 .PHONY: help setup lint format test all data model dq verify-statsbomb download-statsbomb \
 	download-transfermarkt convert-statsbomb validate-statsbomb coverage-report build-tables \
-	links database dictionary notebooks
+	links database profiles dictionary notebooks
 
 help:  ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-24s %s\n", $$1, $$2}'
@@ -23,7 +23,7 @@ all: data model dq  ## Everything: collect, model, test the data
 
 data: download-statsbomb download-transfermarkt convert-statsbomb validate-statsbomb coverage-report  ## Phase 1: collect and convert (idempotent)
 
-model: build-tables links database dictionary  ## Phase 2: processed tables, links, DuckDB, dictionary
+model: build-tables links database profiles dictionary  ## Processed tables, links, DuckDB, profiles, dictionary
 
 dq:  ## Data quality tests on data/processed
 	uv run pytest -m data
@@ -54,6 +54,9 @@ links:  ## Link StatsBomb matches, teams and players to Transfermarkt
 
 database:  ## DuckDB database with one view per processed table
 	uv run python scripts/build_database.py
+
+profiles:  ## Player profiles (data/processed/profiles/; needs the database), then the views
+	uv run python scripts/build_profiles.py
 
 dictionary:  ## Regenerate docs/DATA_DICTIONARY.md (fails on undocumented columns)
 	uv run python scripts/data_dictionary.py

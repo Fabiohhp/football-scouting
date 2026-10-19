@@ -18,8 +18,9 @@ _To be written after Phase 3._
   Transfermarkt data to a documented Parquet + DuckDB analytical model.
 - **Data quality**: automated tests (minutes played, goals vs. scores, referential integrity) and
   player entity resolution across providers that share no IDs.
-- **Football analytics**: per-90 profiles shrunk by measured reliability, possession value
-  (expected threat), role discovery, similarity search and team-style context.
+- **Football analytics**: per-90 profiles adjusted for possession and shrunk by measured
+  reliability, possession value (expected threat), role discovery, similarity search and
+  team-style context.
 - **Recruitment back-test**: features from 2015/16 only, outcomes from later seasons, kept
   strictly apart to avoid leakage.
 - **Communication**: statistical analyses written up as notebooks for scouts and recruitment
@@ -47,7 +48,7 @@ Requirements: [uv](https://docs.astral.sh/uv/) and `make`.
 make setup             # create the environment from uv.lock (Python 3.12)
 make test              # run the test suite
 make data              # download (~0.5 GB, ~4.5 GB on disk), convert, validate, report
-make model             # analytical tables, StatsBomb <-> Transfermarkt links, DuckDB, dictionary
+make model             # analytical tables, links, DuckDB, player profiles, dictionary
 make dq                # data quality tests
 ```
 

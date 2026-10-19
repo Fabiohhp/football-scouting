@@ -47,6 +47,12 @@ def test_profiles_name_distinct_metrics_for_every_outfield_group():
         assert set(statistics) <= set(LABELS)
 
 
+def test_recording_statistics_are_per_90_counts():
+    recording = load_config().recording
+    assert set(recording.statistics) <= set(PER_90)
+    assert {"interceptions", "pressures", "clearances"} <= set(recording.statistics)
+
+
 # (x, y, end_x, end_y): progressive by rule ("10y" for a pass, "10y" for a carry, "zones",
 # "25pct"). Zones thresholds in units: 34.3 within the own half, 17.1 across halfway, 11.4 in
 # the other half.

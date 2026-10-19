@@ -237,7 +237,7 @@ tables:
       deflected: Deflected by another player's touch.
 
   statsbomb/carries:
-    description: Carry events (player moving with the ball at his feet).
+    description: Carry events (player moving with the ball at their feet).
     columns:
       end_x: End location x.
       end_y: End location y.
@@ -596,3 +596,64 @@ tables:
       confederation: Confederation.
       total_clubs: Number of clubs.
       url: Competition URL.
+
+  # ---------------------------------------------------------------- Player profiles
+  profiles/profile_players:
+    description: >-
+      The players with a profile (`make profiles`, `analysis.profiles`): outfield players with
+      900 real minutes in the pool, or 450 if under 23 on 30 June 2016 (`compared` in the
+      config). Features: 2015/16 information only.
+    grain: one row per player
+    columns:
+      player_id: StatsBomb player id.
+      player_name: Full name in StatsBomb.
+      known_as: The name the player is known by (StatsBomb nickname, else the full name).
+      comparison_group: Comparison group the player is compared within (config `comparison_groups`).
+      league: Pool league where the player played most.
+      minutes: Real minutes played in the pool, summed over clubs.
+      age: Age in years on 30 June 2016 (null without a Transfermarkt date of birth).
+      young: Profiled from 450 minutes under the under-23 rule, short of 900.
+      possession: The team's share of time with the ball while the player was on the pitch, over the season (`analysis.possession`).
+
+  profiles/profile_values:
+    description: >-
+      Each profile statistic of each player, step by step: as recorded, adjusted (recording
+      context, then possession), shrunk towards the group's mean, and as a percentile within the
+      comparison group.
+    grain: one row per player and profile statistic
+    columns:
+      player_id: StatsBomb player id.
+      comparison_group: The player's comparison group.
+      statistic: Rate or ratio name (`analysis.metrics`; config `profiles`).
+      minutes: Real minutes played in the pool (M in the shrinkage weight).
+      recorded: The rate per 90 or ratio as recorded (null for a ratio with no attempts).
+      adjusted: "`recorded` rescaled to the group's rate over every recording context (recording statistics only), then put on an even share of possession by the group's elasticity (per-90 statistics only)."
+      group_mean: The comparison group's mean of `adjusted`, weighted by minutes.
+      weight: "M / (M + K): the weight of the player's own `adjusted` value (0 when it is null)."
+      shrunk: "`group_mean` + `weight` x (`adjusted` - `group_mean`): the profile value."
+      percentile: Share of the group's players at or below the player's `shrunk` value, in % (ties share the average; reversed where lower is better, so 100 is always the best).
+
+  profiles/profile_statistics:
+    description: The statistics of each comparison group's profile and the numbers behind their adjustment and shrinkage.
+    grain: one row per comparison group and profile statistic
+    columns:
+      comparison_group: Comparison group.
+      statistic: Rate or ratio name.
+      order: Position in the group's profile (config `profiles`), from 0.
+      side: "with: made with the ball, adjusted on the team's share; without: on the opponent's share; ratio: not adjusted for possession."
+      recording_context: Compared within recording context (config `recording`).
+      lower_is_better: A lower number is the better one (percentiles reversed).
+      elasticity: Elasticity of the count to the share of possession on its side, within players (Poisson with a fixed effect per player, the group's players with 900+ minutes; null for ratios).
+      elasticity_se: Standard error of `elasticity`, clustered by player.
+      reliability: Split-half reliability of `adjusted` at 900 minutes within the group (players with 1,800+ minutes, rates centred within league, mean of 50 random splits).
+      k: "Minutes at which the statistic is half signal, half noise: 900 (1 - reliability) / reliability."
+      group_mean: The group's mean of `adjusted`, weighted by minutes (the shrinkage target).
+
+  profiles/profile_recording:
+    description: Factors applied to the statistics recorded differently between leagues and in the Premier League from 28 December 2015 (config `recording`).
+    grain: one row per comparison group, recording statistic and recording context
+    columns:
+      comparison_group: Comparison group.
+      statistic: Rate name.
+      context: Recording context (a league; the Premier League before and from 2015-12-28).
+      factor: Multiplier of the context's counts that brings its rate per 90 to the group's rate over every context, among the group's profiled players.

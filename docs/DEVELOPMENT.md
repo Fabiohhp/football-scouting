@@ -13,7 +13,7 @@ make format            # ruff --fix + ruff format
 make test              # unit tests (tests marked `network` or `data` are deselected)
 make all               # data + model + dq
 make data              # download, convert, validate, coverage report (idempotent)
-make model             # build-tables, links, database, dictionary (~20 s)
+make model             # build-tables, links, database, profiles, dictionary (~35 s)
 make dq                # data quality tests on data/processed (pytest -m data)
 make notebooks         # re-run every notebook in place (needs `make model`)
 make verify-statsbomb  # StatsBomb coverage + size estimate (metadata only); writes inventory.csv
@@ -25,6 +25,7 @@ make coverage-report          # reports/coverage_report.md
 make build-tables             # data/processed/{statsbomb,transfermarkt}/*.parquet
 make links                    # data/processed/links/ (StatsBomb <-> Transfermarkt)
 make database                 # data/processed/scouting.duckdb (views)
+make profiles                 # data/processed/profiles/ (player profiles), then the views again
 make dictionary               # docs/DATA_DICTIONARY.md (fails on undocumented columns)
 ```
 
@@ -39,7 +40,8 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   Makefile targets; `notebooks/` hold the analyses and import their logic from the package;
   `reports/figures/` holds the figures used by the README.
 - All parameters (sources, pinned versions, competitions, seasons, position and comparison
-  groups, profiles, back-test dates, paths, HTTP retry policy) come from `config/pipeline.yaml` via
+  groups, who is compared, profiles, recording contexts, the xT map, back-test dates, paths,
+  HTTP retry policy) come from `config/pipeline.yaml` via
   `football_scouting.config.load_config()`. No hard-coded IDs or paths in code.
 - Pipeline steps are idempotent and resumable: cached downloads (`http.fetch_json_cached`),
   atomic writes (`.part` + rename), retries with exponential backoff, existing files skipped.
@@ -47,7 +49,8 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   from the commit SHA pinned in the config (`statsbomb.ref`), never from `master`.
 - Data layers: `data/raw/` (as downloaded), `data/interim/` (a faithful Parquet copy of the raw
   JSON: nested STRUCT/LIST columns, strings kept as strings, no cleaning), `data/processed/`
-  (the analytical model). Interim tables are queried with DuckDB, e.g.
+  (the analytical model; `profiles/` is built from the other processed tables by
+  `analysis.profiles`). Interim tables are queried with DuckDB, e.g.
   `read_parquet('data/interim/statsbomb/events/*.parquet')`, nested fields as
   `shot.statsbomb_xg`.
 - DuckDB connections for big scans come from `statsbomb_parquet.connect()` (4 threads, 3 GB
@@ -74,6 +77,14 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     and match, and each player's team's and opponent's time while on the pitch;
     `possession.elasticity`: how much a count depends on possession, within players (Poisson,
     a fixed effect per player); `possession.adjust_rates`: rates put on an even share;
+  - `profiles`: the four steps of a profile (recording context, possession, shrinkage,
+    percentiles), each a function (`recording_factors`, `rescale`, `adjusted_rates`,
+    `reliability`, `shrink`, `percentiles`), and `build_profiles`, which chains them for
+    `make profiles`; the functions take the processed profile tables back as arguments;
+  - `xt`: expected threat. `load_actions` (open-play moves, shots and, optionally, ball
+    losses), `fit` (the map on any grid), `value_at` and `move_credit` (the xT a move gains),
+    and `chain_outcomes` (the xG of the open-play shot each event's chain went on to take, to
+    check a map on held-out matches);
   - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
     and each player's value (and its age) on a date;
   - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a
@@ -87,7 +98,9 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   (`pitch_type="statsbomb"`).
 - Players are compared within the six `comparison_groups` of the config, not the seven
   position groups, and read through the twelve statistics of their group's profile
-  (`profiles` in the config).
+  (`profiles` in the config). Later analyses read the profiles from the processed tables
+  (`profile_players`, `profile_values`: one row per player and statistic, as recorded,
+  adjusted, shrunk and as a percentile), not from the raw rates.
 
 ## Rules that protect the analysis
 
@@ -147,6 +160,8 @@ StatsBomb:
   it).
   Whether an action was made with or without the ball follows from its type, not its possession
   team. Time with the ball: gaps between events capped at 10 seconds (`analysis.possession`).
+  Who has the ball next: after an incomplete open-play pass the opponent (or a set piece) acts
+  next 99.6% of the time; after a dispossession 80%, a failed dribble 83%, a miscontrol 93%.
 - **Locations.** A 0.1-yard grid from 0.1 to 120.0 and 0.1 to 80.0; the acting team attacks
   towards x = 120 with y = 0 on its left, and the same spot seen by the other team is
   (120.1 - x, 80.1 - y). Set-piece spots (kick-offs at x = 60 or 61, goal kicks at 6 or 7) give

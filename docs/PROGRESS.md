@@ -10,7 +10,8 @@
   section 5 (shots and xG) on 2026-10-13, section 6 (event locations) on 2026-10-14, section 7
   (link quality) on 2026-10-15.
 - **Phase 3, scouting analyses:** started 2026-10-17 (scope and order in `DECISIONS.md`).
-  Player profiles: section 1 on 2026-10-17, section 2 (possession) on 2026-10-18.
+  Player profiles: section 1 on 2026-10-17, sections 2 (possession) and 3 (the profiles) on
+  2026-10-18. Possession value: section 1 (the xT map) on 2026-10-19.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -149,17 +150,57 @@ Phase plan:
   changed teams, the elasticities predict the right size of change (slope 0.97, 95% interval
   0.50 to 1.59), PAdj changes five times too large. Pass completion, not adjusted, still
   depends on the team (team share 0.41 to 0.60 among defenders and central midfielders).
+- Decided (`DECISIONS.md`, 2026-10-18): possession as time with the ball; each per-90 statistic
+  adjusted by its group's measured elasticity, ratios as recorded; full-backs' key passes kept;
+  pass completion as recorded until an expected completion is tested with the possession value
+  model.
+- Section 3, the profiles: 1,335 outfield players (69 through the under-23 rule) read through
+  their group's twelve statistics after recording context, possession and shrinkage, as
+  percentiles within the group. Recording context moves the percentiles of the statistics it
+  touches the most (a median 8.6 points), possession 3.4, shrinkage 0.7 (3.3 for players under
+  23 with fewer than 900 minutes). On players with 1,800+ minutes, part of a season shrunk by
+  the group's K forecasts the rest 21% to 28% better (squared error); the group's K beats one K
+  where reliability differs between groups (centre-forwards' aerial duels won, centre-backs'
+  ball losses per touch). Shrinkage barely changes the order of players, but 450-minute players
+  fill 39% to 45% of the predicted top 10% instead of 56% to 59%, where they are half the
+  players. Five example profiles (pizza charts) and the top five of each group read like the
+  players (Kanté first in tackles and interceptions).
+- Decided (`DECISIONS.md`, 2026-10-18): goalkeepers have no profile and are left out of the
+  back-test; the four steps and their details; the profiles as processed tables
+  (`make profiles`, part of `make model`); who is compared and the recording contexts in the
+  config (`compared`, `recording`).
 - New helpers: `metrics.FAMILIES`, `metrics.progressive`, `leagues.team_effect`,
-  `analysis.possession`; `reliability.split_half_reliability` takes a rate function. 70 unit
-  tests, 30 data tests (new: progressive rules, team effect against chance, profiles name known
-  statistics, possession time on toy matches, the within-player elasticity against a
-  confounded simulation, the new counts reconcile with the event tables, aerial duels won equal
-  lost in every match, possession time adds up between teams and players).
+  `analysis.possession`, `analysis.profiles`; `reliability.split_half_reliability` takes a rate
+  function. New processed tables `profile_players`, `profile_values`, `profile_statistics` and
+  `profile_recording`. 78 unit tests, 34 data tests (new: progressive rules, team effect against
+  chance, profiles name known statistics, possession time on toy matches, the within-player
+  elasticity against a confounded simulation, the new counts reconcile with the event tables,
+  aerial duels won equal lost in every match, possession time adds up between teams and
+  players, the profile steps on toy data, the processed profiles follow their rules).
+
+### Phase 3: Possession value `notebooks/03_possession_value.ipynb` (from 2026-10-19)
+- Section 1, the xT map: expected threat from 2,577,884 open-play actions (passes, carries,
+  shots, ball losses), checked on held-out matches against the xG each action's chain went on
+  to reach (`analysis.xt.chain_outcomes`). The textbook model (shots and moves) overstates it by
+  46%; dispossessions, miscontrols and failed dribbles, which hand the ball over 80% to 93% of
+  the time, bring it to 13% below and lift held-out skill from 0.081 to 0.092, level with each
+  zone's mean outcome, halving the worth of the build-up against the final third. Skill rises
+  with finer zones down to 2.5 yards and stops at 2. Both wings match within noise; the leagues
+  share the map's shape, with La Liga's chains reaching 5.9% more xG from the same zones and
+  Ligue 1's 5.9% less; shots valued by goals give the same map with more noise. xT: 0.004 at
+  the centre spot, 0.046 at the edge of the box, 0.118 on the penalty spot.
+- Decided (`DECISIONS.md`, 2026-10-19): open play only, ball losses counted, zones of 2.5
+  yards, one map for all four leagues, shots valued by their xG (`xt` in the config).
+- New helpers `analysis.xt`. 83 unit tests, 37 data tests (new: the map solved by hand on two
+  zones, chains broken by the opponent, set pieces and the half; the actions reconcile with the
+  event tables, every action has a chain outcome, the map peaks in front of goal and mirrors).
 
 ## Next
 
-1. Player profiles, section 3: the final profiles (possession-adjusted, rescaled by recording
-   context, shrunk with each group's K, percentiles within group).
+1. Possession value, section 2: each player's xT per 90 from passes and carries, its
+   reliability, its dependence on possession and the team, what it adds to the profiles, and
+   how failed moves count against a player. Then an expected pass completion, tested against
+   pass completion as recorded (section 3), and the chosen numbers in the profiles (section 4).
 
 ## Open questions
 
@@ -171,13 +212,10 @@ Phase plan:
   record in a given later season while still valued; values, the club named on each valuation
   and games in covered leagues are the candidates, to be chosen in Phase 3.
 - Whether VAEP is added after xT, depending on what xT shows.
-- The possession adjustment of the profiles (notebook 02, section 2): each per-90 statistic by
-  its group's measured elasticity; pass completion and the other ratios as recorded.
-- Full-backs' key passes fall below 0.4 reliability once adjusted for possession (0.41 to
-  0.35): kept, dropped or replaced in the full-backs' profile.
-- Pass completion depends on the team after possession (team share up to 0.60 among
-  centre-backs): kept as recorded, or replaced by completion over an expected completion that
-  accounts for each pass's difficulty.
+- How the back-test treats short samples: shrunk values rank players with few minutes
+  conservatively (450-minute players fill 39% to 45% of a group's predicted top 10% where they
+  are half the players), which is right on average but can bury a young player with strong
+  numbers. Ranking young players also by an optimistic bound is a back-test choice.
 - The meaning of `transfer_fee` 0 vs null (free, loan, unknown) is still unverified.
 - Before publishing: register interest at statsbomb.com/resource-centre (StatsBomb asks this
   of open-data users) and add the StatsBomb logo from its Media Pack.

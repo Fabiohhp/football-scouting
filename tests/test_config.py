@@ -34,3 +34,20 @@ def test_backtest_outcomes_come_after_the_market_view():
     assert bt.market_view == date(2016, 6, 30) and bt.outcome_base == date(2016, 8, 1)
     assert all(h > bt.outcome_base for h in bt.horizons)
     assert date(2020, 8, 31) not in bt.horizons
+
+
+def test_compared_players_and_recording_contexts():
+    cfg = load_config()
+    assert (cfg.compared.minutes, cfg.compared.young_minutes, cfg.compared.young_age) == (
+        900, 450, 23,
+    )  # fmt: skip
+    names = {c.competition_id: c.name for c in cfg.statsbomb.competitions}
+    assert [(names[c.competition_id], c.since) for c in cfg.recording.changes] == [
+        ("Premier League", date(2015, 12, 28))
+    ]
+
+
+def test_xt_grid_and_shot_value():
+    xt = load_config().xt
+    assert (xt.nx, xt.ny, xt.losses, xt.shot_value) == (48, 32, True, "xg")
+    assert 120 / xt.nx == 80 / xt.ny  # square zones

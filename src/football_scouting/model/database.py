@@ -1,8 +1,8 @@
 """The DuckDB database: views over every processed Parquet table (data/processed/scouting.duckdb).
 
 Views keep the database tiny and always in sync with the Parquet files. Naming: StatsBomb and
-link tables keep their names (`events`, `player_map`, ...); Transfermarkt tables get a `tm_`
-prefix (`tm_players`, `tm_player_valuations`, ...).
+link and profile tables keep their names (`events`, `player_map`, `profile_values`, ...);
+Transfermarkt tables get a `tm_` prefix (`tm_players`, `tm_player_valuations`, ...).
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import duckdb
 
 from football_scouting.config import Config
 
-SOURCES = (("statsbomb", ""), ("links", ""), ("transfermarkt", "tm_"))
+SOURCES = (("statsbomb", ""), ("links", ""), ("transfermarkt", "tm_"), ("profiles", ""))
 
 
 def database_path(cfg: Config) -> Path:

@@ -345,3 +345,135 @@ tracking) and does not feed the back-test.
   79% of their own rate; with the centre-backs' K, 40%. Each group's K rests on fewer players
   (79 centre-forwards to 186 central midfielders with 900 minutes in both halves, against 702
   outfield players together), so it is less precise.
+
+## 2026-10-18: The possession adjustment (notebook 02, section 2)
+
+**Decision.**
+- Possession is **time with the ball**: the time from each event to the next, within a half,
+  goes to the team in possession, with gaps capped at 10 seconds. A player's possession is the
+  team's share of that time while the player is on the pitch (`analysis.possession`).
+- Every per-90 statistic in a profile is put on an even share of possession by its
+  **elasticity, measured within players for each comparison group**: rate x (0.5 / share)^β,
+  with the team's share for statistics made with the ball and the opponent's for those without
+  it. Ratios (pass completion, ball losses per touch, xG per shot, aerial duels won) are used as
+  recorded.
+- **Full-backs' key passes** stay in the full-backs' profile.
+- **Pass completion** stays as recorded. A completion over expected, which accounts for each
+  pass's difficulty, is tested with the possession value model (notebook 03) and replaces it if
+  it removes the team's part while staying reliable.
+
+**Reason.**
+- Time with the ball agrees with the share of passes (0.97 per match) and ranges from 39%
+  (Carpi) to 65% (Barcelona) over the season. Season figures tie passing to possession (0.74 to
+  0.84 among defenders and central midfielders) but cannot tell possession from the better
+  players a team with the ball can afford. Within players (Poisson regression with a fixed
+  effect per player), counts made with the ball grow faster than the time (progressive passes
+  1.23 to 1.48), except forwards' (a centre-forward's passes 0.25); counts without the ball
+  grow more slowly than the opponent's time (tackles 0.16 to 0.51, pressures 0.35 to 0.79); ball
+  recoveries and centre-backs' aerial duels rise with the team's own possession. Leaving the
+  player's own time on the ball out of the share changes the elasticities by a median of -0.05.
+- Alternatives tested, by the median correlation with possession left after the adjustment,
+  within comparison group (with the ball / without): none 0.33 / -0.08; in proportion to the
+  time 0.12 / 0.29; measured elasticity 0.10 / 0.02. StatsBomb's PAdj (Knutson, 2014), which
+  adjusts defensive counts only, turns them to 0.64: the team then explains 0.43 of them, and
+  their rankings agree with the recorded ones at as little as 0.49. With the measured
+  elasticity, the team's share of statistics made with the ball falls from 0.18 to 0.08 and the
+  median reliability at 900 minutes from 0.74 to 0.72.
+- On 31 players who changed teams during the season (median change in possession 5.3 points),
+  the elasticities predict the size of the change in their rates (slope 0.97, 95% interval 0.50
+  to 1.59); in proportion to the time 0.77, PAdj 0.18, its predicted changes about five times
+  too large.
+- Full-backs' key passes fall from 0.41 to 0.35 at 900 minutes once adjusted. They are the
+  full-backs' main measure of chance creation; xA, the alternative, is 0.20. Shrinkage with the
+  group's K weighs them by their reliability.
+- Pass completion depends on the team even after possession (team share 0.41 to 0.60 among
+  defenders and central midfielders, against 0.08 for the adjusted statistics made with the
+  ball): it rewards safe passing in teams that keep the ball. A ratio gets no more chances from
+  possession, so no possession adjustment applies; the difficulty of each pass does.
+
+## 2026-10-18: The final profiles (notebook 02, section 3)
+
+**Decision.**
+- **Goalkeepers have no profile** and are left out of the back-test.
+- Each profile statistic goes through four steps, in this order (`analysis.profiles`):
+  - **recording context**: within each comparison group, a context's counts are multiplied so
+    that its rate per 90 equals the group's rate over the four leagues, among the group's
+    profiled players;
+  - **possession**: per-90 statistics are adjusted by the group's elasticity (2026-10-18),
+    fitted on the counts as recorded of the group's players with 900+ minutes;
+  - **shrinkage** towards the group's mean of the adjusted values, weighted by minutes, with
+    K per statistic and group measured on the adjusted values (split halves of 900 minutes,
+    players with 1,800+ minutes). A ratio with no attempts takes the group's mean;
+  - **percentiles**: the share of the group's profiled players at or below the player, ties
+    sharing the average, reversed where a lower number is better.
+- The profiles are **processed tables** (`make profiles`, part of `make model`):
+  `data/processed/profiles/`, one row per player and statistic with each step, plus the
+  elasticities, reliabilities and recording factors. Later analyses read them.
+- Who is compared (2026-10-11) and the recording contexts (2026-10-11, 2026-10-18) are
+  parameters in `config/pipeline.yaml` (`compared`, `recording`).
+
+**Reason.**
+- Goalkeepers: StatsBomb's open data has no post-shot xG, so shot-stopping cannot be judged
+  without a model of its own, and the project builds no xG model (2026-10-17). A goalkeeper's
+  other actions (claims, sweeping, distribution) do not make a recruitment judgement on their
+  own.
+- Shrinkage, tested on the 764 outfield players with 1,800+ minutes: each player's matches
+  are dealt into two random halves, half the players keep only 450 minutes of the first, and
+  the first half predicts the second (50 draws). With the group's K, the squared error falls by
+  21% to 28% within groups (median over statistics), against 21% to 24% with one K for all
+  outfield players. The group's K is better where reliability differs between groups:
+  centre-forwards' aerial duels won (14 points of squared error), centre-backs' ball losses
+  per touch (11), centre-forwards' xG per shot (8); elsewhere the two agree (median 0.3
+  points), and it is never worse by more than 0.1. Without shrinkage, 450-minute players fill
+  56% to 59% of the predicted top 10% though they are half the players; with it, 39% to 45%,
+  and 1 to 2 points more of the predicted top 10% are in the second half's top quarter.
+- Order of the steps: the recording factors and the possession adjustment both multiply
+  counts; the elasticities, fitted within players, are the same on counts as recorded (the
+  factors are constant within a context), so they match section 2. Recording context moves
+  the percentiles of the statistics it touches by a median 8.6 points, possession 3.4,
+  shrinkage 0.7 (3.3 for players under 23 with fewer than 900 minutes).
+- Processed tables: every later notebook reads the same numbers, the build takes about 12
+  seconds, and the rules are checked by data tests (each profiled player has their group's
+  twelve statistics, shrunk values lie between the player's and the group's, adjusted values
+  follow the elasticities).
+
+## 2026-10-19: The expected threat map (notebook 03, section 1)
+
+**Decision.**
+- Possession value is credited by **expected threat** (xT; Karun Singh, 2018), implemented in
+  `analysis.xt`. From each zone of the pitch a team shoots, moves the ball (a pass or a carry)
+  or loses it; a zone's xT is the xG of its shots plus the xT of the zones its successful moves
+  reach, each weighted by how often it happens. A move is credited with the xT it gains.
+- **Open play only:** open-play passes (without injury clearances), carries and open-play shots.
+  Set-piece deliveries and shots straight from set pieces are left out; what follows them in
+  open play stays.
+- **Ball losses count:** dispossessions, miscontrols and failed dribbles are actions that end
+  the chain, like a failed pass.
+- **Zones of 2.5 × 2.5 yards** (48 × 32).
+- **One map** for both wings and all four leagues, **shots valued by their xG**.
+- The grid, the losses and the shot value are parameters in `config/pipeline.yaml` (`xt`).
+
+**Reason.**
+- Every map was checked on matches it was not fitted on (20 random halves of the 1,517
+  matches). Each action's observed outcome is the xG of the open-play shot its team's chain
+  went on to take, where a chain ends at the opponent's next action on the ball, a set piece
+  or the end of the half; skill is the share of a flat guess's squared error a map removes.
+- Losses: the textbook model, with shots and moves only, overstates the outcomes by 46%. The
+  107,792 dispossessions, miscontrols and failed dribbles it does not see hand the ball to the
+  opponent or a set piece 80% to 93% of the time (a failed pass 99.6%), three quarters of them
+  in the opponent's half. Counted, they bring the map to 13% below the outcomes and lift its
+  held-out skill from 0.081 to 0.092 (16 × 12 zones), level with each zone's mean outcome
+  (0.093). They halve xT in the own half (0.48 times) and barely change it in front of goal
+  (0.89); the order of moves by credit hardly moves (Spearman 0.990).
+- Grid: held-out skill rises with finer zones down to 2.5 yards (0.102, against 0.092 at the
+  textbook's 16 × 12; gain over 4-yard zones +0.0034, 95% range +0.0022 to +0.0043) and stops
+  at 2 yards (+0.0004, range -0.0004 to +0.0013). At 2.5 yards a move's credit correlates at
+  0.988 between the maps of two halves of the matches.
+- One map: a zone differs from its mirror image across the pitch by 4.0% of the mean xT, less
+  than the maps of two halves of the matches (5.8%). Each league's own map credits moves like
+  the pooled map as closely as random sets of 380 matches do (0.989 to 0.991). Its level
+  differs beyond chance in La Liga (+5.9%) and Ligue 1 (-5.9%; random sets -2.8% to +3.2%):
+  from the same zones their chains lead to more or less xG, which comes with the players who
+  carry them on. A league's own map would credit a pass with the forwards who receive it.
+- Shot value: goals give the same map 2% higher (credits agree at 0.990) but noisier between
+  halves (0.948 against 0.988 with xG).

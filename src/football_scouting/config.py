@@ -51,6 +51,33 @@ class ComparisonGroup:
 
 
 @dataclass(frozen=True)
+class ComparedConfig:
+    minutes: float  # real minutes in the pool
+    young_minutes: float  # the same for players under `young_age`
+    young_age: float  # years, on the back-test's market view
+
+
+@dataclass(frozen=True)
+class RecordingChange:
+    competition_id: int
+    since: date  # first match date recorded the new way
+
+
+@dataclass(frozen=True)
+class RecordingConfig:
+    statistics: tuple[str, ...]  # compared within recording context (metric names)
+    changes: tuple[RecordingChange, ...]
+
+
+@dataclass(frozen=True)
+class XtConfig:
+    nx: int  # zones along the length of the pitch
+    ny: int  # zones across it
+    losses: bool  # ball losses end a chain like failed moves
+    shot_value: str  # "xg" or "goal"
+
+
+@dataclass(frozen=True)
 class TransfermarktConfig:
     base_url: str
     tables: tuple[str, ...]
@@ -87,7 +114,10 @@ class Config:
     transfermarkt: TransfermarktConfig
     position_groups: tuple[PositionGroup, ...]
     comparison_groups: tuple[ComparisonGroup, ...]
+    compared: ComparedConfig
     profiles: dict[str, tuple[str, ...]]  # comparison group code -> statistics (metric names)
+    recording: RecordingConfig
+    xt: XtConfig
     backtest: BacktestConfig
     http: HttpConfig
 
@@ -130,6 +160,20 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
     profiles = {g: tuple(ms) for g, ms in raw["profiles"].items()}
     if not set(profiles) <= {g.code for g in comparison_groups}:
         raise ValueError("profiles must be keyed by comparison group codes")
+    rec = raw["recording"]
+    recording = RecordingConfig(
+        statistics=tuple(rec["statistics"]),
+        changes=tuple(RecordingChange(**c) for c in rec["changes"]),
+    )
+    changed = [c.competition_id for c in recording.changes]
+    if len(set(changed)) < len(changed) or not set(changed) <= {
+        c.competition_id for c in competitions
+    }:
+        raise ValueError("recording changes: at most one per configured competition")
+    nx, ny = raw["xt"]["grid"]
+    xt = XtConfig(nx=nx, ny=ny, losses=raw["xt"]["losses"], shot_value=raw["xt"]["shot_value"])
+    if xt.shot_value not in ("xg", "goal") or min(nx, ny) < 1:
+        raise ValueError("xt: a grid of at least one zone, shot_value xg or goal")
     bt = raw["backtest"]
     backtest = BacktestConfig(
         market_view=bt["market_view"],
@@ -147,7 +191,10 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
         transfermarkt=transfermarkt,
         position_groups=position_groups,
         comparison_groups=comparison_groups,
+        compared=ComparedConfig(**raw["compared"]),
         profiles=profiles,
+        recording=recording,
+        xt=xt,
         backtest=backtest,
         http=HttpConfig(**raw["http"]),
     )

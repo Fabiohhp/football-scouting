@@ -77,6 +77,14 @@ comparison_groups:
   - {code: AMW, name: Attacking midfielders and wingers, members: [AM, W]}
   - {code: CF, name: Centre-forwards, members: [CF]}
 
+# Who is compared (decided 2026-10-11; evidence in notebooks/01_data_exploration.ipynb, section
+# 1): players with `minutes` real minutes in the pool, or `young_minutes` if they were under
+# `young_age` on the back-test's market view.
+compared:
+  minutes: 900
+  young_minutes: 450
+  young_age: 23
+
 # The statistics each outfield comparison group's profile is read through (decided 2026-10-18;
 # evidence in notebooks/02_player_profiles.ipynb, section 1): names of `analysis.metrics` rates
 # and ratios, each reliable within its group (0.4 or more at 900 minutes), no two at a Spearman
@@ -93,6 +101,25 @@ profiles:
         progressive_carries_zones, pass_completion, ball_losses_per_touch, pressures, tackles]
   CF: [xg, shots, xg_per_shot, touches_in_box, passes_into_box, aerial_duels, aerial_win_rate,
        passes, pass_completion, dribbles, ball_losses_per_touch, pressures]
+
+# Statistics recorded differently between leagues and, in the Premier League, from match week 19.
+# Players are compared on them within recording context: each league, and the Premier League
+# before and from `since` (decided 2026-10-11 and 2026-10-18; evidence in
+# notebooks/01_data_exploration.ipynb, section 3, and notebooks/02_player_profiles.ipynb,
+# section 1.3).
+recording:
+  statistics: [interceptions, pressures, clearances, counterpressures, pressures_final_third]
+  changes:
+    - {competition_id: 2, since: 2015-12-28}  # Premier League
+
+# Expected threat, the value of having the ball in each zone (decided 2026-10-19; evidence in
+# notebooks/03_possession_value.ipynb, section 1): zones of 2.5 x 2.5 yards, ball losses
+# (dispossessions, miscontrols, failed dribbles) ending a chain like failed passes, shots valued
+# by their xG (`analysis.xt`).
+xt:
+  grid: [48, 32]  # zones along the length, across
+  losses: true
+  shot_value: xg
 
 # The recruitment back-test (decided 2026-10-13; evidence in
 # notebooks/01_data_exploration.ipynb, section 4). Players are judged on 2015/16 data and on the
