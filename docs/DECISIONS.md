@@ -477,3 +477,56 @@ tracking) and does not feed the back-test.
   carry them on. A league's own map would credit a pass with the forwards who receive it.
 - Shot value: goals give the same map 2% higher (credits agree at 0.990) but noisier between
   halves (0.948 against 0.988 with xG).
+
+## 2026-10-19: A player's xT (notebook 03, section 2.1)
+
+**Decision.**
+- A player's xT per 90 is the **xT gained** by their successful open-play passes and carries:
+  each move's gain on the map, xT(end) - xT(start), with a move to a zone worth less counting
+  0, like a failed pass. Ball losses are not charged. Passes and carries are kept as its two
+  parts (`analysis.xt.player_match_credit` and `credit_rates`; `xt.credit` in
+  `config/pipeline.yaml`).
+- Alternatives tested: **net** xT (Singh's player xT: gains less the xT that moves backwards
+  give up) and **charged** xT (net, less the xT of the zone where a pass failed or the ball was
+  lost).
+
+**Reason.**
+- Reliability at 900 minutes (50 random split halves, players with 1,800+ minutes, rates
+  centred within league), by comparison group: gained 0.55 to 0.75 (K of 306 to 746 minutes),
+  net 0.50 to 0.71 (360 to 905), charged 0.30 to 0.54 (779 to 2,062; below the profiles' 0.4
+  among centre-backs and full-backs).
+- Gained and net rank players almost the same (Spearman 0.97 to 0.99, 0.91 among
+  centre-forwards). They part on moves backwards, which give back a median of 20% of the xT a
+  centre-back gains, 32% of a central midfielder's and 48% of a centre-forward's. Net xT sinks
+  the forwards who hold the ball up and lay it off (Lukaku from the 66th percentile of
+  centre-forwards to the 27th, Benteke from the 52nd to the 13th; Fellaini from the 32nd to the
+  1st among central midfielders): the map values zones, not the pressure a lay-off escapes.
+- Charged: what a player gives away rises with what they make (Spearman 0.27 to 0.68 between
+  net xT and the xT given away), so the difference cancels much of what tells players apart.
+  The risk side is read in the profiles through pass completion and ball losses per touch.
+
+## 2026-10-19: A player's xT and possession (notebook 03, section 2.2)
+
+**Decision.**
+- xT gained per 90 is put on an even share of possession by its **elasticity**, measured within
+  players in each comparison group: rate x (0.5 / share)^elasticity, with the team's share of
+  possession while the player is on the pitch, as the profiles' per-90 statistics are
+  (2026-10-18). Alternatives tested: no adjustment, and in proportion to the time with the ball.
+- The four leagues stay on one scale: no rescale by league.
+
+**Reason.**
+- Within players (Poisson regression with a fixed effect per player, players with 900+
+  minutes), xT gained grows faster than the time with the ball among defenders and central
+  midfielders (elasticity 1.50 to 1.81), about in proportion among attacking midfielders and
+  wingers (0.95) and half as fast among centre-forwards (0.47). Leaving the player's own time on
+  the ball out of the share lowers the elasticities by about 0.1.
+- As recorded, xT gained correlates with possession at 0.24 to 0.47 within group, and the team
+  explains 17% to 33% of it beyond chance. After the measured elasticity: correlation -0.03 to
+  0.19, team share at most 0.18, reliability at 900 minutes 0.49 to 0.69 (0.55 to 0.75 as
+  recorded). In proportion to the time leaves 0.16 to 0.24 among defenders and central
+  midfielders and takes out more than the within-player effect among centre-forwards (0.04
+  against 0.14).
+- Leagues: once the group is known, the league explains 1.3% of the variation of adjusted xT
+  (0.8% as recorded; 0.6% with leagues shuffled), against 6% for fouls won and times dribbled
+  past, which the profiles also leave as recorded.
+

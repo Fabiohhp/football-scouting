@@ -9,6 +9,8 @@ from football_scouting.analysis.xt import (
     chain_outcomes,
     fit,
     load_actions,
+    move_credit,
+    player_match_credit,
     zones,
 )
 from football_scouting.config import load_config
@@ -68,3 +70,21 @@ def test_the_map_peaks_in_front_of_goal_and_mirrors_left_and_right(actions):
     weight = np.bincount(zones(actions.x, actions.y, xt.nx, xt.ny), minlength=m.size)
     weight = weight.reshape(m.shape)
     assert np.sum(weight * np.abs(m - m[::-1])) / np.sum(weight * m) < 0.1
+
+
+def test_player_credit_adds_up_to_the_moves_of_players_who_played(con, actions):
+    xt = CFG.xt
+    m = fit(actions, xt.nx, xt.ny)
+    sums = player_match_credit(m, actions)
+    played = con.sql(
+        "SELECT match_id, team_id, player_id FROM player_matches "
+        "WHERE played AND match_id IN (SELECT match_id FROM matches WHERE scouting_pool)"
+    ).df()
+    keys = ["match_id", "team_id", "player_id"]
+    assert len(sums.merge(played, on=keys)) == len(sums) == len(sums.drop_duplicates(keys))
+    gain = move_credit(m, actions)
+    assert sums.passes_net.sum() + sums.carries_net.sum() == pytest.approx(np.nansum(gain))
+    assert sums.passes_gained.sum() + sums.carries_gained.sum() == pytest.approx(
+        np.nansum(np.maximum(gain, 0))
+    )
+    assert (sums.passes_failed >= 0).all() and (sums.lost >= 0).all()

@@ -20,6 +20,15 @@ the zone it starts in. Dribbles move the ball through the carry recorded next to
 next open-play shot by the same team before the opponent's next action on the ball, a set
 piece or the end of the half (0 when there is none). It checks a map fitted on some matches
 against what happened in others.
+
+A player's xT adds up the credit of their moves, in one of three versions (`CREDITS`):
+- "gained": the gains of successful moves, a move that takes the ball to a zone worth less
+  counting 0;
+- "net": the gains and losses of successful moves (Singh's player xT);
+- "charged": "net", less the xT where the player gave the ball away: failed passes and, when
+  the actions include them, ball losses.
+`player_match_credit` sums each player's credit per match; `credit_rates` turns any sum of its
+rows into per-90 rates.
 """
 
 from __future__ import annotations
@@ -32,6 +41,7 @@ from football_scouting.analysis.metrics import ON_BALL, OPEN_PLAY
 
 LENGTH, WIDTH = 120.0, 80.0  # StatsBomb pitch units
 SHOT_VALUES = ("xg", "goal")
+CREDITS = ("gained", "net", "charged")
 # Ball losses besides failed dribbles: tackled without attempting a dribble, a bad touch.
 LOSSES = "type IN ('Dispossessed', 'Miscontrol')"
 POOL = "match_id IN (SELECT match_id FROM matches WHERE scouting_pool)"
@@ -129,6 +139,54 @@ def move_credit(xt: np.ndarray, actions: pd.DataFrame) -> np.ndarray:
 
 def _succeeded(actions: pd.DataFrame) -> np.ndarray:
     return ((actions.kind == "move") & actions.success.fillna(False)).to_numpy(bool)
+
+
+def player_match_credit(xt: np.ndarray, actions: pd.DataFrame) -> pd.DataFrame:
+    """One row per player and match with an action: the xT credit of their moves, summed.
+
+    `passes_gained` and `carries_gained` sum the positive gains of successful moves,
+    `passes_net` and `carries_net` all their gains; `passes_failed` sums the xT at the start of
+    failed passes, `lost` the xT where the ball was lost (0 without loss rows in `actions`).
+    """
+    gain = np.nan_to_num(move_credit(xt, actions))
+    start = value_at(xt, actions.x, actions.y)
+    is_pass = (actions.type == "Pass").to_numpy()
+    is_carry = (actions.type == "Carry").to_numpy()
+    failed = is_pass & ~_succeeded(actions)
+    credit = pd.DataFrame(
+        {
+            "passes_gained": np.where(is_pass, np.maximum(gain, 0), 0.0),
+            "carries_gained": np.where(is_carry, np.maximum(gain, 0), 0.0),
+            "passes_net": np.where(is_pass, gain, 0.0),
+            "carries_net": np.where(is_carry, gain, 0.0),
+            "passes_failed": np.where(failed, start, 0.0),
+            "lost": np.where((actions.kind == "loss").to_numpy(), start, 0.0),
+        }
+    )
+    key = actions[["match_id", "team_id", "player_id"]].reset_index(drop=True)
+    return pd.concat([key, credit], axis=1).groupby(list(key.columns)).sum().reset_index()
+
+
+def credit_rates(sums: pd.DataFrame) -> pd.DataFrame:
+    """Per-90 xT of every version from summed `player_match_credit` columns and `minutes`.
+
+    For each version in `CREDITS`: `{version}` and its parts `{version}_passes` and
+    `{version}_carries` (in "charged", failed passes count against the passes and ball losses
+    against the carries); `passes_failed` and `lost` per 90 as well.
+    """
+    per_90 = 90 / sums["minutes"]
+    out = pd.DataFrame(index=sums.index)
+    charges = {"passes": sums["passes_failed"], "carries": sums["lost"]}
+    for version in CREDITS:
+        for part in ("passes", "carries"):
+            column = sums[f"{part}_{'gained' if version == 'gained' else 'net'}"]
+            if version == "charged":
+                column = column - charges[part]
+            out[f"{version}_{part}"] = column * per_90
+        out[version] = out[f"{version}_passes"] + out[f"{version}_carries"]
+    out["passes_failed"] = sums["passes_failed"] * per_90
+    out["lost"] = sums["lost"] * per_90
+    return out
 
 
 def chain_outcomes(con: duckdb.DuckDBPyConnection, shot_value: str = "xg") -> pd.DataFrame:

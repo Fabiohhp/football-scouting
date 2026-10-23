@@ -113,13 +113,15 @@ recording:
     - {competition_id: 2, since: 2015-12-28}  # Premier League
 
 # Expected threat, the value of having the ball in each zone (decided 2026-10-19; evidence in
-# notebooks/03_possession_value.ipynb, section 1): zones of 2.5 x 2.5 yards, ball losses
+# notebooks/03_possession_value.ipynb, sections 1 and 2.1): zones of 2.5 x 2.5 yards, ball losses
 # (dispossessions, miscontrols, failed dribbles) ending a chain like failed passes, shots valued
-# by their xG (`analysis.xt`).
+# by their xG; a player's xT sums the gains of their successful passes and carries, a move to a
+# zone worth less counting 0 (`analysis.xt`).
 xt:
   grid: [48, 32]  # zones along the length, across
   losses: true
   shot_value: xg
+  credit: gained  # gained, net or charged (`analysis.xt.CREDITS`)
 
 # The recruitment back-test (decided 2026-10-13; evidence in
 # notebooks/01_data_exploration.ipynb, section 4). Players are judged on 2015/16 data and on the

@@ -83,8 +83,9 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     `make profiles`; the functions take the processed profile tables back as arguments;
   - `xt`: expected threat. `load_actions` (open-play moves, shots and, optionally, ball
     losses), `fit` (the map on any grid), `value_at` and `move_credit` (the xT a move gains),
-    and `chain_outcomes` (the xG of the open-play shot each event's chain went on to take, to
-    check a map on held-out matches);
+    `chain_outcomes` (the xG of the open-play shot each event's chain went on to take, to
+    check a map on held-out matches), and `player_match_credit` and `credit_rates`: a player's
+    xT per match and per 90 in three versions (`CREDITS`: gained, net, charged);
   - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
     and each player's value (and its age) on a date;
   - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a

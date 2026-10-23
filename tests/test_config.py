@@ -47,7 +47,7 @@ def test_compared_players_and_recording_contexts():
     ]
 
 
-def test_xt_grid_and_shot_value():
+def test_xt_grid_shot_value_and_credit():
     xt = load_config().xt
-    assert (xt.nx, xt.ny, xt.losses, xt.shot_value) == (48, 32, True, "xg")
+    assert (xt.nx, xt.ny, xt.losses, xt.shot_value, xt.credit) == (48, 32, True, "xg", "gained")
     assert 120 / xt.nx == 80 / xt.ny  # square zones

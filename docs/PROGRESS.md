@@ -11,7 +11,8 @@
   (link quality) on 2026-10-15.
 - **Phase 3, scouting analyses:** started 2026-10-17 (scope and order in `DECISIONS.md`).
   Player profiles: section 1 on 2026-10-17, sections 2 (possession) and 3 (the profiles) on
-  2026-10-18. Possession value: section 1 (the xT map) on 2026-10-19.
+  2026-10-18. Possession value: section 1 (the xT map) and section 2 (a player's xT: how to count
+  it, possession, what it adds to the profiles) on 2026-10-19.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -189,18 +190,38 @@ Phase plan:
   share the map's shape, with La Liga's chains reaching 5.9% more xG from the same zones and
   Ligue 1's 5.9% less; shots valued by goals give the same map with more noise. xT: 0.004 at
   the centre spot, 0.046 at the edge of the box, 0.118 on the penalty spot.
+- Section 2.1, a player's xT: three ways of counting the credit of a player's passes and
+  carries per 90, among 1,335 outfield players with a profile. xT gained (moves to a zone worth
+  less count 0) is the most reliable in every group (0.55 to 0.75 at 900 minutes), net xT
+  (Singh's, moves backwards counted against) slightly less (0.50 to 0.71) and ranks players
+  almost the same (0.91 to 0.99), but sinks forwards who lay the ball off; charging failed passes
+  and ball losses halves the reliability (0.30 to 0.54), as what players give away rises with
+  what they make. The median full-back gains more than the median central midfielder; carries
+  bring 18% of a centre-back's xT and 48% of a centre-forward's.
+- Section 2.2, possession and the team: within players, xT gained grows faster than the time
+  with the ball among defenders and central midfielders (elasticity 1.50 to 1.81), half as fast
+  among centre-forwards (0.47). Adjusted by the measured elasticity, its correlation with
+  possession falls from 0.24-0.47 to -0.03-0.19 and the team's share from 0.17-0.33 to at most
+  0.18, at 0.03 to 0.07 of reliability. The league explains 1.3% of it within group.
+- Section 2.3, what xT adds to the profiles: the group's twelve profile statistics predict 67% to
+  87% of xT gained out of sample, through progressive passes and carries, passes into the box and
+  key passes. The part they miss has a reliability of -0.02 to 0.28 at 900 minutes, below what
+  almost every profile statistic adds to the other eleven (median 0.40 to 0.46). Among
+  full-backs xT correlates with completed passes into the box at 0.87, past the profiles' limit
+  of 0.8, and is more reliable (0.49 against 0.40 at 900 minutes).
 - Decided (`DECISIONS.md`, 2026-10-19): open play only, ball losses counted, zones of 2.5
-  yards, one map for all four leagues, shots valued by their xG (`xt` in the config).
-- New helpers `analysis.xt`. 83 unit tests, 37 data tests (new: the map solved by hand on two
-  zones, chains broken by the opponent, set pieces and the half; the actions reconcile with the
-  event tables, every action has a chain outcome, the map peaks in front of goal and mirrors).
+  yards, one map for all four leagues, shots valued by their xG; a player's xT is the xT gained
+  by their successful passes and carries (`xt` in the config), put on an even share of
+  possession by its elasticity within the comparison group; the four leagues on one scale.
+- New helpers `analysis.xt`. 84 unit tests, 38 data tests (new: the map solved by hand on two
+  zones, chains broken by the opponent, set pieces and the half, a player's credit in the three
+  versions; the actions reconcile with the event tables, every action has a chain outcome, the
+  map peaks in front of goal and mirrors, players' credit adds up to the moves).
 
 ## Next
 
-1. Possession value, section 2: each player's xT per 90 from passes and carries, its
-   reliability, its dependence on possession and the team, what it adds to the profiles, and
-   how failed moves count against a player. Then an expected pass completion, tested against
-   pass completion as recorded (section 3), and the chosen numbers in the profiles (section 4).
+1. Possession value: an expected pass completion, tested against pass completion as recorded
+   (section 3), then the chosen numbers in the profiles (section 4).
 
 ## Open questions
 
@@ -212,6 +233,9 @@ Phase plan:
   record in a given later season while still valued; values, the club named on each valuation
   and games in covered leagues are the candidates, to be chosen in Phase 3.
 - Whether VAEP is added after xT, depending on what xT shows.
+- Whether xT takes a place in the profiles: it mostly repeats them (notebook 03, section 2.3),
+  but among full-backs it is a more reliable count of what passes into the box and key passes
+  (0.35 at 900 minutes) measure. Weighed in notebook 03, section 4.
 - How the back-test treats short samples: shrunk values rank players with few minutes
   conservatively (450-minute players fill 39% to 45% of a group's predicted top 10% where they
   are half the players), which is right on average but can bury a young player with strong

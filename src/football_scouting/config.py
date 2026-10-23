@@ -75,6 +75,7 @@ class XtConfig:
     ny: int  # zones across it
     losses: bool  # ball losses end a chain like failed moves
     shot_value: str  # "xg" or "goal"
+    credit: str  # a player's xT: "gained", "net" or "charged" (`analysis.xt.CREDITS`)
 
 
 @dataclass(frozen=True)
@@ -171,9 +172,15 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
     }:
         raise ValueError("recording changes: at most one per configured competition")
     nx, ny = raw["xt"]["grid"]
-    xt = XtConfig(nx=nx, ny=ny, losses=raw["xt"]["losses"], shot_value=raw["xt"]["shot_value"])
-    if xt.shot_value not in ("xg", "goal") or min(nx, ny) < 1:
-        raise ValueError("xt: a grid of at least one zone, shot_value xg or goal")
+    xt = XtConfig(nx=nx, ny=ny, **{k: raw["xt"][k] for k in ("losses", "shot_value", "credit")})
+    if (
+        xt.shot_value not in ("xg", "goal")
+        or xt.credit not in ("gained", "net", "charged")
+        or min(nx, ny) < 1
+    ):
+        raise ValueError(
+            "xt: a grid of at least one zone, shot_value xg or goal, credit gained, net or charged"
+        )
     bt = raw["backtest"]
     backtest = BacktestConfig(
         market_view=bt["market_view"],

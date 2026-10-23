@@ -2,7 +2,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from football_scouting.analysis.xt import _chain_outcome, fit, move_credit, value_at, zones
+from football_scouting.analysis.xt import (
+    _chain_outcome,
+    credit_rates,
+    fit,
+    move_credit,
+    player_match_credit,
+    value_at,
+    zones,
+)
 
 
 def test_zones_cover_the_pitch():
@@ -47,6 +55,31 @@ def test_moves_are_credited_with_the_xt_they_gain():
     credit = move_credit(xt, a)
     assert credit[[1, 2, 6]] == pytest.approx([0.05, 0.05, -0.05])
     assert np.isnan(credit[[0, 3, 4, 5, 7]]).all()  # shots and failed moves
+
+
+def test_player_credit_in_three_versions():
+    xt = np.array([[0.1, 0.15]])
+    rows = [  # player, kind, type, x, end_x, success
+        (1, "move", "Pass", 30, 90, True),  # +0.05
+        (1, "move", "Pass", 90, 30, True),  # -0.05
+        (1, "move", "Carry", 30, 90, True),  # +0.05
+        (1, "move", "Pass", 90, 30, False),  # failed where the ball was worth 0.15
+        (1, "loss", "Miscontrol", 30, None, False),  # lost where it was worth 0.1
+        (1, "shot", "Shot", 90, None, None),
+        (2, "move", "Carry", 90, 30, True),  # -0.05
+    ]
+    a = pd.DataFrame(rows, columns=["player_id", "kind", "type", "x", "end_x", "success"])
+    a = a.assign(match_id=7, team_id=3, y=40.0, end_y=a.end_x.notna() * 40.0)
+    a = a.astype({"success": "boolean"})
+    sums = player_match_credit(xt, a).set_index("player_id")
+    assert sums.loc[
+        1, ["passes_gained", "carries_gained", "passes_net", "carries_net"]
+    ].tolist() == (pytest.approx([0.05, 0.05, 0.0, 0.05]))
+    assert sums.loc[1, ["passes_failed", "lost"]].tolist() == pytest.approx([0.15, 0.1])
+    assert sums.loc[2, ["carries_gained", "carries_net"]].tolist() == pytest.approx([0, -0.05])
+    r = credit_rates(sums.assign(minutes=45.0)).loc[1]  # per 90: twice the sums
+    assert r[["gained", "net", "charged"]].tolist() == pytest.approx([0.2, 0.1, -0.4])
+    assert r[["charged_passes", "charged_carries"]].tolist() == pytest.approx([-0.3, -0.1])
 
 
 def test_chain_outcome_is_the_next_open_play_shot_before_the_chain_breaks():
