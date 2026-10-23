@@ -530,3 +530,29 @@ tracking) and does not feed the back-test.
   (0.8% as recorded; 0.6% with leagues shuffled), against 6% for fouls won and times dribbled
   past, which the profiles also leave as recorded.
 
+
+## 2026-10-23: Expected pass completion (notebook 03, section 3)
+
+**Decision.**
+- A pass's expected completion (xPass) comes from **gradient-boosted trees** on what is known
+  when the pass is played: where it starts, its direction, height and body part, pressure,
+  whether it is a cross, a through ball or a cut-back, whether it follows an aerial duel won, a
+  recovery or an interception, and the phase of play (`analysis.xpass`). Who passes (role,
+  team, league) is left out.
+- **Not used: the end location, the length and the switch flag**, which give the outcome away.
+- Every pass is scored by a model fitted on other matches (matches dealt at random into five
+  folds).
+
+**Reason.**
+- An incomplete pass ends where the opponent cut it out: 99.7% of 172,096 incomplete passes end
+  within 2 yards of the opponent's next action that can end a pass (9.3% of completed ones).
+  Switches are flagged only when the ball crossed 40 yards, the 10,032 incomplete ones included.
+  With the end location the held-out AUC rises from 0.88 to 0.92 by learning where passes were
+  cut out.
+- Held out, on 1,317,164 open-play passes: log loss 0.343 (0.533 for the average, 0.388 for a
+  logistic regression on start, direction, height and pressure), Brier score 0.108, AUC 0.883.
+  Calibrated across the whole range and in every league (completed over expected 0.994 to
+  1.006).
+- Completion as recorded mostly measures the ease of a player's passes (Spearman 0.90 to 0.95
+  with their mean expected completion, within group); completion above expected takes most of
+  it out (0.20 to 0.50) and stays reliable (0.47 to 0.63 at 900 minutes).

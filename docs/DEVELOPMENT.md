@@ -86,6 +86,13 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     `chain_outcomes` (the xG of the open-play shot each event's chain went on to take, to
     check a map on held-out matches), and `player_match_credit` and `credit_rates`: a player's
     xT per match and per 90 in three versions (`CREDITS`: gained, net, charged);
+  - `xpass`: expected pass completion. `load_passes` (open-play passes with the features known
+    when a pass is played, `FEATURES`, and the ones that leak its outcome, `LEAKS`),
+    `next_opponent_action` (the check that an incomplete pass ends where it was cut out),
+    `expected_completion` (each pass scored by a model fitted on other matches, `match_folds`),
+    `player_match_passes` and `completion_rates` (completion, expected completion, completion
+    above expected), `possession_slope` and `adjust_above_expected` (within players, on an even
+    share of possession);
   - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
     and each player's value (and its age) on a date;
   - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a
@@ -169,6 +176,11 @@ StatsBomb:
   away the end of the stadium a team attacks; towards one end on-ball actions sit 2.5 yards
   further right. Season numbers balance the two ends, single halves do not. Location-based
   numbers share one scale across leagues.
+- **Pass ends.** An incomplete pass ends where the opponent cut it out (99.7% within 2 yards of
+  the opponent's next interception, recovery, clearance, block or goalkeeper action, when it
+  comes within three events), not where it was aimed: its end location and length give the outcome away (ground passes: median 15.6
+  yards completed, 12.7 incomplete). The switch flag is set only when the ball crossed 40 yards,
+  completed or not. Crosses, through balls and cut-backs are flagged on incomplete passes too.
 - **xG.** Every penalty has xG 0.7835 and most have no freeze frame; shots straight from a
   corner sit at the xG floor (0.00018). Non-penalty xG runs about 4% below goals in every
   league; direct free kicks score 1.6 times their xG, open-play shots under 0.06 xG score less

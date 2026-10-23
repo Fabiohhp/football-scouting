@@ -12,7 +12,8 @@
 - **Phase 3, scouting analyses:** started 2026-10-17 (scope and order in `DECISIONS.md`).
   Player profiles: section 1 on 2026-10-17, sections 2 (possession) and 3 (the profiles) on
   2026-10-18. Possession value: section 1 (the xT map) and section 2 (a player's xT: how to count
-  it, possession, what it adds to the profiles) on 2026-10-19.
+  it, possession, what it adds to the profiles) on 2026-10-19, section 3 (expected pass
+  completion) on 2026-10-23.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -209,19 +210,34 @@ Phase plan:
   almost every profile statistic adds to the other eleven (median 0.40 to 0.46). Among
   full-backs xT correlates with completed passes into the box at 0.87, past the profiles' limit
   of 0.8, and is more reliable (0.49 against 0.40 at 900 minutes).
+- Section 3, expected pass completion: gradient-boosted trees on what is known when a pass is
+  played, every pass scored by a model fitted on other matches (held-out AUC 0.883, log loss
+  0.343 against 0.533 for the average; calibrated in every league). End locations are left out:
+  an incomplete pass ends where it was cut out. Completion as recorded mostly measures the ease
+  of a player's passes (Spearman 0.90 to 0.95 with their mean expected completion); completion
+  above expected takes it out and stays reliable (0.47 to 0.63 at 900 minutes), with less of the
+  team (team share 0.11 to 0.35 against 0.14 to 0.61). It still rises with possession within
+  players (0.8 to 1.3 points per 10 points of the team's share); on an even share its
+  correlation with possession falls from 0.30-0.46 to 0.13-0.19, at 0.03 to 0.10 of reliability
+  (0.40 to 0.60).
 - Decided (`DECISIONS.md`, 2026-10-19): open play only, ball losses counted, zones of 2.5
   yards, one map for all four leagues, shots valued by their xG; a player's xT is the xT gained
   by their successful passes and carries (`xt` in the config), put on an even share of
   possession by its elasticity within the comparison group; the four leagues on one scale.
-- New helpers `analysis.xt`. 84 unit tests, 38 data tests (new: the map solved by hand on two
-  zones, chains broken by the opponent, set pieces and the half, a player's credit in the three
-  versions; the actions reconcile with the event tables, every action has a chain outcome, the
-  map peaks in front of goal and mirrors, players' credit adds up to the moves).
+  2026-10-23: the expected pass completion model (boosted trees, end locations and the switch
+  flag left out, every pass scored by a model fitted on other matches).
+- New helpers `analysis.xt` and `analysis.xpass`. 89 unit tests, 42 data tests (new: the map
+  solved by hand on two zones, chains broken by the opponent, set pieces and the half, a
+  player's credit in the three versions, folds that keep matches together, passes scored only
+  by models that never saw their match, the within-player possession slope; the actions and
+  passes reconcile with the event tables, every action has a chain outcome, the map peaks in
+  front of goal and mirrors, players' credit adds up to the moves, incomplete passes end where
+  they were cut out, switches are flagged only when the ball crossed).
 
 ## Next
 
-1. Possession value: an expected pass completion, tested against pass completion as recorded
-   (section 3), then the chosen numbers in the profiles (section 4).
+1. Possession value, section 4: which numbers go into the profiles (xT, completion above
+   expected).
 
 ## Open questions
 
@@ -236,6 +252,10 @@ Phase plan:
 - Whether xT takes a place in the profiles: it mostly repeats them (notebook 03, section 2.3),
   but among full-backs it is a more reliable count of what passes into the box and key passes
   (0.35 at 900 minutes) measure. Weighed in notebook 03, section 4.
+- Whether completion above expected replaces pass completion in the profiles, and whether it is
+  put on an even share of possession (within players it rises 0.8 to 1.3 points per 10 points
+  of the team's share; adjusting costs 0.03 to 0.10 of reliability, leaving centre-backs at
+  0.399). Weighed in notebook 03, section 4.
 - How the back-test treats short samples: shrunk values rank players with few minutes
   conservatively (450-minute players fill 39% to 45% of a group's predicted top 10% where they
   are half the players), which is right on average but can bury a young player with strong
