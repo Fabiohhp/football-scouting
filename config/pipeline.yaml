@@ -85,22 +85,38 @@ compared:
   young_minutes: 450
   young_age: 23
 
-# The statistics each outfield comparison group's profile is read through (decided 2026-10-18;
-# evidence in notebooks/02_player_profiles.ipynb, section 1): names of `analysis.metrics` rates
-# and ratios, each reliable within its group (0.4 or more at 900 minutes), no two at a Spearman
-# correlation of 0.8 or more. Progressive passes and carries follow Wyscout's zones.
+# The statistics each outfield comparison group's profile is read through, each reliable within
+# its group (0.4 or more at 900 minutes), no two at a Spearman correlation of 0.8 or more. Chosen
+# from the event counts (decided 2026-10-18; evidence in notebooks/02_player_profiles.ipynb,
+# section 1): names of `analysis.metrics` rates and ratios; progressive passes and carries follow
+# Wyscout's zones. Two possession-value numbers then took three of their places (decided
+# 2026-10-24; evidence in notebooks/03_possession_value.ipynb, section 4): `xt` (a player's xT per
+# 90, `xt` below) and `completion_above_expected` (`analysis.xpass`), both in `analysis.profiles`.
 profiles:
-  CB: [passes, pass_completion, long_passes, switches, progressive_passes_zones,
+  CB: [passes, completion_above_expected, long_passes, switches, progressive_passes_zones,
        progressive_carries_zones, aerial_duels, clearances, tackles, recoveries, pressures,
        ball_losses_per_touch]
-  FB: [passes, pass_completion, progressive_passes_zones, progressive_carries_zones, crosses,
-       passes_into_box, key_passes, dribbles, touches_in_box, pressures, tackles, recoveries]
-  CM: [passes, pass_completion, long_passes, progressive_passes_zones, progressive_carries_zones,
-       key_passes, xg, ball_losses_per_touch, pressures, tackles, interceptions, recoveries]
+  FB: [passes, completion_above_expected, progressive_passes_zones, progressive_carries_zones,
+       crosses, passes_into_box, key_passes, dribbles, touches_in_box, pressures, tackles,
+       recoveries]
+  CM: [passes, completion_above_expected, long_passes, progressive_passes_zones,
+       progressive_carries_zones, xt, xg, ball_losses_per_touch, pressures, tackles,
+       interceptions, recoveries]
   AMW: [xg, shots, xg_per_shot, key_passes, passes_into_box, crosses, dribbles,
-        progressive_carries_zones, pass_completion, ball_losses_per_touch, pressures, tackles]
-  CF: [xg, shots, xg_per_shot, touches_in_box, passes_into_box, aerial_duels, aerial_win_rate,
-       passes, pass_completion, dribbles, ball_losses_per_touch, pressures]
+        progressive_carries_zones, completion_above_expected, ball_losses_per_touch, pressures,
+        tackles]
+  CF: [xg, shots, xg_per_shot, touches_in_box, xt, aerial_duels, aerial_win_rate, passes,
+       completion_above_expected, dribbles, ball_losses_per_touch, pressures]
+
+# What the possession-value numbers replaced: {group: {number: the statistic chosen from the event
+# counts}}. Put back, they give the profiles of notebooks/02_player_profiles.ipynb
+# (`Config.count_profiles`), which the analyses made before the change read.
+replaced:
+  CB: {completion_above_expected: pass_completion}
+  FB: {completion_above_expected: pass_completion}
+  CM: {completion_above_expected: pass_completion, xt: key_passes}
+  AMW: {completion_above_expected: pass_completion}
+  CF: {completion_above_expected: pass_completion, xt: passes_into_box}
 
 # Statistics recorded differently between leagues and, in the Premier League, from match week 19.
 # Players are compared on them within recording context: each league, and the Premier League

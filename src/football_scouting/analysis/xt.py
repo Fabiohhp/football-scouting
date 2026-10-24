@@ -28,7 +28,7 @@ A player's xT adds up the credit of their moves, in one of three versions (`CRED
 - "charged": "net", less the xT where the player gave the ball away: failed passes and, when
   the actions include them, ball losses.
 `player_match_credit` sums each player's credit per match; `credit_rates` turns any sum of its
-rows into per-90 rates.
+rows into per-90 rates, `total_credit` into one version's total.
 """
 
 from __future__ import annotations
@@ -187,6 +187,16 @@ def credit_rates(sums: pd.DataFrame) -> pd.DataFrame:
     out["passes_failed"] = sums["passes_failed"] * per_90
     out["lost"] = sums["lost"] * per_90
     return out
+
+
+def total_credit(sums: pd.DataFrame, version: str = "gained") -> pd.Series:
+    """One version's credit (`CREDITS`) from summed `player_match_credit` columns."""
+    if version not in CREDITS:
+        raise ValueError(f"version must be one of {CREDITS}")
+    if version == "gained":
+        return sums["passes_gained"] + sums["carries_gained"]
+    net = sums["passes_net"] + sums["carries_net"]
+    return net if version == "net" else net - sums["passes_failed"] - sums["lost"]
 
 
 def chain_outcomes(con: duckdb.DuckDBPyConnection, shot_value: str = "xg") -> pd.DataFrame:

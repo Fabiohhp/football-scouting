@@ -51,3 +51,12 @@ def test_xt_grid_shot_value_and_credit():
     xt = load_config().xt
     assert (xt.nx, xt.ny, xt.losses, xt.shot_value, xt.credit) == (48, 32, True, "xg", "gained")
     assert 120 / xt.nx == 80 / xt.ny  # square zones
+
+
+def test_count_profiles_put_back_what_possession_value_replaced():
+    cfg = load_config()
+    counted = cfg.count_profiles
+    assert all(len(counted[g]) == len(ms) == 12 for g, ms in cfg.profiles.items())
+    assert all("pass_completion" in ms for ms in counted.values())
+    assert not {"xt", "completion_above_expected"} & {m for ms in counted.values() for m in ms}
+    assert counted["CF"][4] == "passes_into_box" and counted["CM"][5] == "key_passes"

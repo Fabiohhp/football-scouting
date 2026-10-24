@@ -624,10 +624,10 @@ tables:
     columns:
       player_id: StatsBomb player id.
       comparison_group: The player's comparison group.
-      statistic: Rate or ratio name (`analysis.metrics`; config `profiles`).
+      statistic: "Statistic name (config `profiles`): a rate or ratio of `analysis.metrics`, or a possession-value number of `analysis.profiles` (`xt`: xT gained by open-play passes and carries per 90; `completion_above_expected`: open-play completions less expected completions, per pass)."
       minutes: Real minutes played in the pool (M in the shrinkage weight).
       recorded: The rate per 90 or ratio as recorded (null for a ratio with no attempts).
-      adjusted: "`recorded` rescaled to the group's rate over every recording context (recording statistics only), then put on an even share of possession by the group's elasticity (per-90 statistics only)."
+      adjusted: "`recorded` rescaled to the group's rate over every recording context (recording statistics only), then put on an even share of possession: per-90 statistics by the group's elasticity, completion above expected less the group's slope x (share - 0.5)."
       group_mean: The comparison group's mean of `adjusted`, weighted by minutes.
       weight: "M / (M + K): the weight of the player's own `adjusted` value (0 when it is null)."
       shrunk: "`group_mean` + `weight` x (`adjusted` - `group_mean`): the profile value."
@@ -638,13 +638,14 @@ tables:
     grain: one row per comparison group and profile statistic
     columns:
       comparison_group: Comparison group.
-      statistic: Rate or ratio name.
+      statistic: Statistic name (as in `profile_values`).
       order: Position in the group's profile (config `profiles`), from 0.
       side: "with: made with the ball, adjusted on the team's share; without: on the opponent's share; ratio: not adjusted for possession."
       recording_context: Compared within recording context (config `recording`).
       lower_is_better: A lower number is the better one (percentiles reversed).
       elasticity: Elasticity of the count to the share of possession on its side, within players (Poisson with a fixed effect per player, the group's players with 900+ minutes; null for ratios).
       elasticity_se: Standard error of `elasticity`, clustered by player.
+      slope: "Completion above expected per unit of the team's share of possession, within players (least squares weighted by passes with a fixed effect per player, the group's players with 900+ minutes; null for other statistics)."
       reliability: Split-half reliability of `adjusted` at 900 minutes within the group (players with 1,800+ minutes, rates centred within league, mean of 50 random splits).
       k: "Minutes at which the statistic is half signal, half noise: 900 (1 - reliability) / reliability."
       group_mean: The group's mean of `adjusted`, weighted by minutes (the shrinkage target).

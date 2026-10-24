@@ -13,7 +13,8 @@
   Player profiles: section 1 on 2026-10-17, sections 2 (possession) and 3 (the profiles) on
   2026-10-18. Possession value: section 1 (the xT map) and section 2 (a player's xT: how to count
   it, possession, what it adds to the profiles) on 2026-10-19, section 3 (expected pass
-  completion) on 2026-10-23.
+  completion) and section 4.1 (candidates for the profiles) on 2026-10-23, section 4.2 (the
+  profiles with possession value) on 2026-10-24.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -170,7 +171,9 @@ Phase plan:
 - Decided (`DECISIONS.md`, 2026-10-18): goalkeepers have no profile and are left out of the
   back-test; the four steps and their details; the profiles as processed tables
   (`make profiles`, part of `make model`); who is compared and the recording contexts in the
-  config (`compared`, `recording`).
+  config (`compared`, `recording`). Three statistics were later replaced by possession-value
+  numbers (notebook 03, section 4.2); the notebook builds and reads the profiles as chosen here
+  (`Config.count_profiles`).
 - New helpers: `metrics.FAMILIES`, `metrics.progressive`, `leagues.team_effect`,
   `analysis.possession`, `analysis.profiles`; `reliability.split_half_reliability` takes a rate
   function. New processed tables `profile_players`, `profile_values`, `profile_statistics` and
@@ -220,24 +223,52 @@ Phase plan:
   players (0.8 to 1.3 points per 10 points of the team's share); on an even share its
   correlation with possession falls from 0.30-0.46 to 0.13-0.19, at 0.03 to 0.10 of reliability
   (0.40 to 0.60).
+- Section 4.1, candidates for the profiles: each swap judged on reliability, the strongest
+  correlation with the eleven statistics left, and the reliability and team share of what it
+  adds to them. Pass completion as recorded is steadier than completion above expected (0.79 to
+  0.87 against 0.40 to 0.60 at 900 minutes; what it adds 0.40 to 0.53 against 0.24 to 0.45) but
+  measures the ease of a player's passes and, among defenders, the team (0.38 and 0.23 of what it
+  adds, against 0.13 and 0.09). xT adds more than the statistic it replaces among
+  centre-forwards, in place of completed passes into the box (0.30 against 0.13), and narrowly
+  among central midfielders, in place of key passes (0.29 against 0.26); it repeats the other
+  groups' profiles.
+- Section 4.2, the profiles with possession value: completion above expected in place of pass
+  completion in every group, xT in place of completed passes into the box (centre-forwards) and
+  key passes (central midfielders), built by `make profiles` through the four steps. The tables
+  reproduce sections 2.2 and 3.2 (largest difference 6e-17). The rules hold (closest pair 0.63
+  to 0.74, the same families); completion above expected is the least reliable statistic of
+  three profiles (centre-backs 0.399) and is shrunk harder than pass completion (K of 595 to
+  1,356 minutes against 135 to 244), xT less than the statistics it replaces (471 and 509
+  against 792 and 1,137). Percentiles move: Spearman 0.49 to 0.70 between pass completion and
+  completion above expected, a fifth to a third of players by 25 points or more (Stones from the
+  95th percentile of centre-backs to the 56th, Kanté from the 52nd to the 90th of central
+  midfielders); 0.73 and 0.74 for xT.
 - Decided (`DECISIONS.md`, 2026-10-19): open play only, ball losses counted, zones of 2.5
   yards, one map for all four leagues, shots valued by their xG; a player's xT is the xT gained
   by their successful passes and carries (`xt` in the config), put on an even share of
   possession by its elasticity within the comparison group; the four leagues on one scale.
   2026-10-23: the expected pass completion model (boosted trees, end locations and the switch
-  flag left out, every pass scored by a model fitted on other matches).
-- New helpers `analysis.xt` and `analysis.xpass`. 89 unit tests, 42 data tests (new: the map
+  flag left out, every pass scored by a model fitted on other matches); completion above
+  expected put on an even share of possession by its within-player slope. 2026-10-24:
+  completion above expected in place of pass completion in every profile, xT in place of
+  completed passes into the box (centre-forwards) and key passes (central midfielders); the
+  ease of a player's passes left for role discovery.
+- New helpers `analysis.xt` and `analysis.xpass`; `analysis.profiles` builds the possession-value
+  numbers (`value_sums`, `profile_rates`, `possession_effects`). 93 unit tests, 42 data tests
+  (new: the map
   solved by hand on two zones, chains broken by the opponent, set pieces and the half, a
   player's credit in the three versions, folds that keep matches together, passes scored only
   by models that never saw their match, the within-player possession slope; the actions and
   passes reconcile with the event tables, every action has a chain outcome, the map peaks in
   front of goal and mirrors, players' credit adds up to the moves, incomplete passes end where
-  they were cut out, switches are flagged only when the ball crossed).
+  they were cut out, switches are flagged only when the ball crossed, the possession-value
+  numbers in the profiles on toy data, the profiles as chosen from the event counts, the
+  processed completion above expected follows its slope).
 
 ## Next
 
-1. Possession value, section 4: which numbers go into the profiles (xT, completion above
-   expected).
+1. Market value and the recruitment back-test (notebook 04), after settling whether VAEP is
+   added (open question).
 
 ## Open questions
 
@@ -249,13 +280,11 @@ Phase plan:
   record in a given later season while still valued; values, the club named on each valuation
   and games in covered leagues are the candidates, to be chosen in Phase 3.
 - Whether VAEP is added after xT, depending on what xT shows.
-- Whether xT takes a place in the profiles: it mostly repeats them (notebook 03, section 2.3),
-  but among full-backs it is a more reliable count of what passes into the box and key passes
-  (0.35 at 900 minutes) measure. Weighed in notebook 03, section 4.
-- Whether completion above expected replaces pass completion in the profiles, and whether it is
-  put on an even share of possession (within players it rises 0.8 to 1.3 points per 10 points
-  of the team's share; adjusting costs 0.03 to 0.10 of reliability, leaving centre-backs at
-  0.399). Weighed in notebook 03, section 4.
+- Team style (Phase 3): whether a line-up can be fitted to the opponent from one season, for
+  instance a midfielder who intercepts more against teams that risk their passes. A team's risk
+  can be read from the ease of its passes (mean expected completion, notebook 03); whether a
+  player's defensive counts rise against riskier opponents more than other players' would be
+  measured within players and recording context, and checked for reliability.
 - How the back-test treats short samples: shrunk values rank players with few minutes
   conservatively (450-minute players fill 39% to 45% of a group's predicted top 10% where they
   are half the players), which is right on average but can bury a young player with strong

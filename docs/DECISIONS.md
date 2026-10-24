@@ -542,6 +542,10 @@ tracking) and does not feed the back-test.
 - **Not used: the end location, the length and the switch flag**, which give the outcome away.
 - Every pass is scored by a model fitted on other matches (matches dealt at random into five
   folds).
+- A player's **completion above expected** (completions less expected completions, per pass) is
+  put on an even share of possession by how much it rises with the team's share within players
+  in the comparison group: less slope x (share - 0.5), with the share while the player is on the
+  pitch. The alternative tested: as it comes.
 
 **Reason.**
 - An incomplete pass ends where the opponent cut it out: 99.7% of 172,096 incomplete passes end
@@ -556,3 +560,54 @@ tracking) and does not feed the back-test.
 - Completion as recorded mostly measures the ease of a player's passes (Spearman 0.90 to 0.95
   with their mean expected completion, within group); completion above expected takes most of
   it out (0.20 to 0.50) and stays reliable (0.47 to 0.63 at 900 minutes).
+- The match still shows in completion above expected: teams complete three to four points more
+  than expected in the matches where they have most of the ball, and within players it rises
+  0.8 to 1.3 points per 10 points of the team's share (weighted least squares with a fixed
+  effect per player). On an even share its correlation with possession falls from 0.30-0.46 to
+  0.13-0.19 and the team's share from 0.11-0.35 to 0.07-0.20, at 0.03 to 0.10 of reliability
+  (0.40 to 0.60; centre-backs 0.399); the order of players hardly changes (0.95 to 0.99). The
+  same within-player rule puts the profiles' per-90 statistics on an even share (2026-10-18).
+
+## 2026-10-24: Possession value in the profiles (notebook 03, section 4)
+
+**Decision.**
+- **Completion above expected**, on an even share of possession (2026-10-23), takes the place of
+  pass completion in all five outfield profiles.
+- **xT gained per 90** (2026-10-19) takes the place of completed passes into the box among
+  centre-forwards and of key passes among central midfielders. The other profiles keep their
+  statistics.
+- Both go through the profiles' four steps (`analysis.profiles`): no recording context;
+  possession by the group's elasticity (xT) or slope within players (completion above
+  expected); shrinkage by the group's K; percentiles within the group. `make profiles` fits the
+  xT map and the expected completion model on the pool's matches (about a minute, against 12
+  seconds). This revises the profiles of 2026-10-18; the config keeps what each number replaced
+  (`replaced`), so that the analyses made on the earlier profiles can be reproduced.
+- The ease of a player's passes (their mean expected completion) is a style, left for role
+  discovery with the position descriptors.
+
+**Reason.**
+- Each swap was judged within the group, on players with 900+ minutes: the reliability at 900
+  minutes, the strongest correlation with the eleven statistics left, and what it adds to them
+  (the reliability of the part they do not predict, and how much of that part the team explains
+  beyond chance).
+- Pass completion as recorded is the steadier number (0.79 to 0.87 against 0.40 to 0.60 at 900
+  minutes; what it adds to the other eleven 0.40 to 0.53 against 0.24 to 0.45), but it measures
+  the ease of the passes a player chooses (Spearman 0.90 to 0.95) and, among defenders, the
+  team: 0.38 of what it adds among centre-backs and 0.23 among full-backs, against 0.13 and 0.09
+  for completion above expected. The profiles compare how well a role is played. Alternatives
+  tested: keeping pass completion; completion above expected everywhere but among centre-backs,
+  where it sits at 0.399, on the profiles' limit. Shrinkage weighs it there by K = 1,356 minutes
+  (207 for pass completion).
+- xT in place of completed passes into the box among centre-forwards: reliability 0.64 against
+  0.44, what it adds 0.30 against 0.13 (closest of the rest: dribbles, 0.55). In place of key
+  passes among central midfielders: 0.66 against 0.53, what it adds 0.29 against 0.26, with less
+  of the team in it (0.02 against 0.13); the narrowest of the three, as key passes are the more
+  direct count for a scout. Elsewhere xT adds less than any statistic of chance creation,
+  passing or carrying it could replace; among full-backs it would correlate at 0.87 with passes
+  into the box.
+- The revised profiles keep the rules: no pair at 0.8 or more (closest 0.63 to 0.74, as before)
+  and the same families (xT counted in chance creation: it values a move by the chance the
+  possession goes on to reach). Percentiles in completion above expected follow those in pass
+  completion at 0.49 to 0.70 (Spearman), and a fifth to a third of players move 25 points or
+  more; xT follows the statistics it replaces at 0.73 and 0.74.
+- The processed tables reproduce sections 2.2 and 3.2 of notebook 03 (largest difference 6e-17).

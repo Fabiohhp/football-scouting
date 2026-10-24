@@ -8,6 +8,7 @@ from football_scouting.analysis.xt import (
     fit,
     move_credit,
     player_match_credit,
+    total_credit,
     value_at,
     zones,
 )
@@ -80,6 +81,8 @@ def test_player_credit_in_three_versions():
     r = credit_rates(sums.assign(minutes=45.0)).loc[1]  # per 90: twice the sums
     assert r[["gained", "net", "charged"]].tolist() == pytest.approx([0.2, 0.1, -0.4])
     assert r[["charged_passes", "charged_carries"]].tolist() == pytest.approx([-0.3, -0.1])
+    totals = [total_credit(sums, v).loc[1] for v in ("gained", "net", "charged")]
+    assert totals == pytest.approx([0.1, 0.05, -0.2])  # the sums behind the rates
 
 
 def test_chain_outcome_is_the_next_open_play_shot_before_the_chain_breaks():

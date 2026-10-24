@@ -12,6 +12,7 @@ from football_scouting.analysis.metrics import (
     progressive,
     rates,
 )
+from football_scouting.analysis.profiles import FAMILY_OF, VALUES
 from football_scouting.config import load_config
 
 
@@ -39,12 +40,14 @@ def test_every_metric_has_one_family():
     assert sorted(members) == sorted(LABELS)
 
 
-def test_profiles_name_distinct_metrics_for_every_outfield_group():
+def test_profiles_name_distinct_statistics_for_every_outfield_group():
     cfg = load_config()
     assert sorted(cfg.profiles) == sorted(g.code for g in cfg.comparison_groups if g.code != "GK")
-    for statistics in cfg.profiles.values():
+    for g, statistics in cfg.profiles.items():
         assert len(set(statistics)) == len(statistics) == 12
-        assert set(statistics) <= set(LABELS)
+        assert set(statistics) <= set(LABELS) | set(VALUES)
+        assert set(statistics) <= set(FAMILY_OF)
+        assert set(cfg.count_profiles[g]) <= set(LABELS)  # chosen from the event counts
 
 
 def test_recording_statistics_are_per_90_counts():

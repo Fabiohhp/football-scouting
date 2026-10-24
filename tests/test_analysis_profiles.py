@@ -4,9 +4,12 @@ import pytest
 
 from football_scouting.analysis.metrics import SUMMED
 from football_scouting.analysis.profiles import (
+    VALUE_SUMS,
     adjusted_rates,
     compared_players,
     percentiles,
+    possession_effects,
+    profile_rates,
     recording_context,
     recording_factors,
     rescale,
@@ -70,6 +73,59 @@ def test_adjusted_rates_use_each_groups_elasticity():
     out = adjusted_rates(sums, pd.Series(["CB", "FB"], index=[1, 2]), beta)
     assert out.passes.tolist() == pytest.approx([50, 60])  # 60% of the ball, elasticity 1 and 0
     assert out.tackles.tolist() == pytest.approx([3.75, 3])  # on the opponent's 40%; FB: none
+
+
+def sums_with_values() -> pd.DataFrame:
+    """Two players, 90 minutes each, their teams with 60% and 40% of the ball."""
+    sums = pd.DataFrame(
+        0.0, index=[1, 2], columns=[*SUMMED, "own_seconds", "opp_seconds", *VALUE_SUMS]
+    )
+    sums[["minutes", "own_seconds", "opp_seconds"]] = [[90, 60, 40], [90, 40, 60]]
+    sums[["xt", "xpass_passes", "xpass_completed", "xpass_expected"]] = [
+        [0.2, 50, 42, 40.0], [0.1, 20, 15, 16.0],
+    ]  # fmt: skip
+    return sums
+
+
+def test_profile_rates_add_the_possession_value_numbers():
+    r = profile_rates(sums_with_values())
+    assert r.xt.tolist() == pytest.approx([0.2, 0.1])  # per 90
+    assert r.completion_above_expected.tolist() == pytest.approx([0.04, -0.05])
+    assert "xt" not in profile_rates(sums_with_values().drop(columns="xt"))
+
+
+def test_adjusted_rates_put_xt_and_completion_above_expected_on_an_even_share():
+    effects = pd.DataFrame({
+        "comparison_group": "CM", "statistic": ["xt", "completion_above_expected"],
+        "elasticity": [2.0, np.nan], "slope": [np.nan, 0.1],
+    })  # fmt: skip
+    out = adjusted_rates(sums_with_values(), pd.Series("CM", index=[1, 2]), effects)
+    assert out.xt.tolist() == pytest.approx([0.2 * (5 / 6) ** 2, 0.1 * (5 / 4) ** 2])
+    # Less 0.1 x (share - 0.5): one point less at 60% of the ball, one more at 40%.
+    assert out.completion_above_expected.tolist() == pytest.approx([0.03, -0.04])
+
+
+def test_possession_effects_fit_the_slope_of_completion_above_expected_within_players():
+    rng = np.random.default_rng(3)
+    n = 400
+    player = np.repeat(np.arange(20), n // 20)
+    share = rng.uniform(0.3, 0.7, n)
+    passes = rng.integers(20, 60, n).astype(float)
+    above = 0.05 * (player % 3) + 0.1 * (share - 0.5)  # each player's own level, then the slope
+    counts = pd.DataFrame({
+        "player_id": player, "minutes": 90.0, "own_seconds": share, "opp_seconds": 1 - share,
+        "xt": rng.poisson(10 * share), "xpass_passes": passes,
+        "xpass_completed": 0.8 * passes + above * passes, "xpass_expected": 0.8 * passes,
+    })  # fmt: skip
+    groups = pd.Series("CM", index=np.arange(20))
+    out = possession_effects(
+        counts, groups, {"CM": ("xt", "completion_above_expected", "xg_per_shot")}
+    )
+    out = out.set_index("statistic")
+    assert out.index.tolist() == ["xt", "completion_above_expected"]  # a ratio has none
+    assert out.loc["completion_above_expected", "slope"] == pytest.approx(0.1)
+    assert out.loc["xt", "elasticity"] == pytest.approx(1, abs=0.15)  # counts in proportion
+    assert out.side.tolist() == ["with", "with"]
 
 
 def test_shrink_pulls_towards_the_minutes_weighted_mean():

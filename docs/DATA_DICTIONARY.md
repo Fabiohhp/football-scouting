@@ -874,10 +874,10 @@ Grain: one row per player and profile statistic. Rows: 16,020. File: `profiles/p
 |---|---|---|
 | `player_id` | `BIGINT` | StatsBomb player id. |
 | `comparison_group` | `VARCHAR` | The player's comparison group. |
-| `statistic` | `VARCHAR` | Rate or ratio name (`analysis.metrics`; config `profiles`). |
+| `statistic` | `VARCHAR` | Statistic name (config `profiles`): a rate or ratio of `analysis.metrics`, or a possession-value number of `analysis.profiles` (`xt`: xT gained by open-play passes and carries per 90; `completion_above_expected`: open-play completions less expected completions, per pass). |
 | `minutes` | `DOUBLE` | Real minutes played in the pool (M in the shrinkage weight). |
 | `recorded` | `DOUBLE` | The rate per 90 or ratio as recorded (null for a ratio with no attempts). |
-| `adjusted` | `DOUBLE` | `recorded` rescaled to the group's rate over every recording context (recording statistics only), then put on an even share of possession by the group's elasticity (per-90 statistics only). |
+| `adjusted` | `DOUBLE` | `recorded` rescaled to the group's rate over every recording context (recording statistics only), then put on an even share of possession: per-90 statistics by the group's elasticity, completion above expected less the group's slope x (share - 0.5). |
 | `group_mean` | `DOUBLE` | The comparison group's mean of `adjusted`, weighted by minutes. |
 | `weight` | `DOUBLE` | M / (M + K): the weight of the player's own `adjusted` value (0 when it is null). |
 | `shrunk` | `DOUBLE` | `group_mean` + `weight` x (`adjusted` - `group_mean`): the profile value. |
@@ -892,13 +892,14 @@ Grain: one row per comparison group and profile statistic. Rows: 60. File: `prof
 | Column | Type | Description |
 |---|---|---|
 | `comparison_group` | `VARCHAR` | Comparison group. |
-| `statistic` | `VARCHAR` | Rate or ratio name. |
+| `statistic` | `VARCHAR` | Statistic name (as in `profile_values`). |
 | `order` | `BIGINT` | Position in the group's profile (config `profiles`), from 0. |
 | `side` | `VARCHAR` | with: made with the ball, adjusted on the team's share; without: on the opponent's share; ratio: not adjusted for possession. |
 | `recording_context` | `BOOLEAN` | Compared within recording context (config `recording`). |
 | `lower_is_better` | `BOOLEAN` | A lower number is the better one (percentiles reversed). |
 | `elasticity` | `DOUBLE` | Elasticity of the count to the share of possession on its side, within players (Poisson with a fixed effect per player, the group's players with 900+ minutes; null for ratios). |
 | `elasticity_se` | `DOUBLE` | Standard error of `elasticity`, clustered by player. |
+| `slope` | `DOUBLE` | Completion above expected per unit of the team's share of possession, within players (least squares weighted by passes with a fixed effect per player, the group's players with 900+ minutes; null for other statistics). |
 | `reliability` | `DOUBLE` | Split-half reliability of `adjusted` at 900 minutes within the group (players with 1,800+ minutes, rates centred within league, mean of 50 random splits). |
 | `k` | `DOUBLE` | Minutes at which the statistic is half signal, half noise: 900 (1 - reliability) / reliability. |
 | `group_mean` | `DOUBLE` | The group's mean of `adjusted`, weighted by minutes (the shrinkage target). |

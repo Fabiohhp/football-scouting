@@ -19,8 +19,8 @@ _To be written after Phase 3._
 - **Data quality**: automated tests (minutes played, goals vs. scores, referential integrity) and
   player entity resolution across providers that share no IDs.
 - **Football analytics**: per-90 profiles adjusted for possession and shrunk by measured
-  reliability, possession value (expected threat), role discovery, similarity search and
-  team-style context.
+  reliability, possession value (expected threat, expected pass completion), role discovery,
+  similarity search and team-style context.
 - **Recruitment back-test**: features from 2015/16 only, outcomes from later seasons, kept
   strictly apart to avoid leakage.
 - **Communication**: statistical analyses written up as notebooks for scouts and recruitment

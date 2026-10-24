@@ -116,7 +116,8 @@ class Config:
     position_groups: tuple[PositionGroup, ...]
     comparison_groups: tuple[ComparisonGroup, ...]
     compared: ComparedConfig
-    profiles: dict[str, tuple[str, ...]]  # comparison group code -> statistics (metric names)
+    profiles: dict[str, tuple[str, ...]]  # comparison group code -> statistics
+    replaced: dict[str, dict[str, str]]  # group -> {possession-value number: statistic replaced}
     recording: RecordingConfig
     xt: XtConfig
     backtest: BacktestConfig
@@ -125,6 +126,14 @@ class Config:
     def comparison_group_of(self) -> dict[str, str]:
         """{position group code: comparison group code}."""
         return {m: g.code for g in self.comparison_groups for m in g.members}
+
+    @property
+    def count_profiles(self) -> dict[str, tuple[str, ...]]:
+        """The profiles as chosen from the event counts: `profiles` with `replaced` put back."""
+        return {
+            g: tuple(self.replaced.get(g, {}).get(m, m) for m in ms)
+            for g, ms in self.profiles.items()
+        }
 
 
 def _resolve(path: str, root: Path) -> Path:
@@ -161,6 +170,9 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
     profiles = {g: tuple(ms) for g, ms in raw["profiles"].items()}
     if not set(profiles) <= {g.code for g in comparison_groups}:
         raise ValueError("profiles must be keyed by comparison group codes")
+    replaced = {g: dict(r) for g, r in raw["replaced"].items()}
+    if any(m not in profiles.get(g, ()) for g, r in replaced.items() for m in r):
+        raise ValueError("replaced: each number must be in its group's profile")
     rec = raw["recording"]
     recording = RecordingConfig(
         statistics=tuple(rec["statistics"]),
@@ -200,6 +212,7 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
         comparison_groups=comparison_groups,
         compared=ComparedConfig(**raw["compared"]),
         profiles=profiles,
+        replaced=replaced,
         recording=recording,
         xt=xt,
         backtest=backtest,

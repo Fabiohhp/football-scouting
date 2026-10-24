@@ -23,7 +23,7 @@ def con():
 @pytest.fixture(scope="module")
 def values(con):
     return con.sql(
-        'SELECT v.*, s."order", s.k, s.side, s.elasticity, s.recording_context, p.possession '
+        'SELECT v.*, s."order", s.k, s.side, s.elasticity, s.slope, s.recording_context, p.possession '
         "FROM profile_values v JOIN profile_statistics s USING (comparison_group, statistic) "
         "JOIN profile_players p USING (player_id, comparison_group)"
     ).df()
@@ -49,11 +49,15 @@ def test_shrunk_values_lie_between_the_player_and_the_group(values):
     assert (missing.weight == 0).all() and np.allclose(missing.shrunk, missing.group_mean)
 
 
-def test_adjusted_follows_the_elasticity(values):
-    """Per-90 statistics outside recording context: rate x (0.5 / share on its side) ^ beta."""
-    d = values[values.side.isin(["with", "without"]) & ~values.recording_context]
+def test_adjusted_follows_the_elasticity_or_the_slope(values):
+    """Per-90 statistics outside recording context: rate x (0.5 / share on its side) ^ beta;
+    completion above expected: less slope x (share - 0.5)."""
+    d = values[values.elasticity.notna() & ~values.recording_context]
     share = np.where(d.side == "with", d.possession, 1 - d.possession)
     assert np.allclose(d.adjusted, d.recorded * (REFERENCE_SHARE / share) ** d.elasticity)
+    s = values[values.slope.notna()]
+    assert set(s.statistic) == {"completion_above_expected"} and (s.side == "with").all()
+    assert np.allclose(s.adjusted, s.recorded - s.slope * (s.possession - REFERENCE_SHARE))
     ratios = values[values.side == "ratio"]
     assert np.allclose(ratios.adjusted, ratios.recorded, equal_nan=True)
 

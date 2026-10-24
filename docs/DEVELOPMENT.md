@@ -13,7 +13,7 @@ make format            # ruff --fix + ruff format
 make test              # unit tests (tests marked `network` or `data` are deselected)
 make all               # data + model + dq
 make data              # download, convert, validate, coverage report (idempotent)
-make model             # build-tables, links, database, profiles, dictionary (~35 s)
+make model             # build-tables, links, database, profiles, dictionary (~1.5 min)
 make dq                # data quality tests on data/processed (pytest -m data)
 make notebooks         # re-run every notebook in place (needs `make model`)
 make verify-statsbomb  # StatsBomb coverage + size estimate (metadata only); writes inventory.csv
@@ -78,9 +78,14 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     `possession.elasticity`: how much a count depends on possession, within players (Poisson,
     a fixed effect per player); `possession.adjust_rates`: rates put on an even share;
   - `profiles`: the four steps of a profile (recording context, possession, shrinkage,
-    percentiles), each a function (`recording_factors`, `rescale`, `adjusted_rates`,
-    `reliability`, `shrink`, `percentiles`), and `build_profiles`, which chains them for
-    `make profiles`; the functions take the processed profile tables back as arguments;
+    percentiles), each a function (`recording_factors`, `rescale`, `possession_effects`,
+    `adjusted_rates`, `reliability`, `shrink`, `percentiles`), and `build_profiles`, which
+    chains them for `make profiles`; the functions take the processed profile tables back as
+    arguments. Besides the `metrics` rates, a profile can hold two possession-value numbers
+    (`VALUES`: `xt`, `completion_above_expected`): `value_sums` adds the sums behind them to
+    the player-match counts, `profile_rates` turns sums into rates; `LABELS` and `FAMILY_OF`
+    cover every statistic. `build_profiles(con, cfg, cfg.count_profiles)` rebuilds the
+    profiles as chosen from the event counts (notebook 02), without them;
   - `xt`: expected threat. `load_actions` (open-play moves, shots and, optionally, ball
     losses), `fit` (the map on any grid), `value_at` and `move_credit` (the xT a move gains),
     `chain_outcomes` (the xG of the open-play shot each event's chain went on to take, to
@@ -106,7 +111,8 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   (`pitch_type="statsbomb"`).
 - Players are compared within the six `comparison_groups` of the config, not the seven
   position groups, and read through the twelve statistics of their group's profile
-  (`profiles` in the config). Later analyses read the profiles from the processed tables
+  (`profiles` in the config; `replaced` records the three statistics possession value took
+  the place of). Later analyses read the profiles from the processed tables
   (`profile_players`, `profile_values`: one row per player and statistic, as recorded,
   adjusted, shrunk and as a percentile), not from the raw rates.
 
@@ -178,9 +184,10 @@ StatsBomb:
   numbers share one scale across leagues.
 - **Pass ends.** An incomplete pass ends where the opponent cut it out (99.7% within 2 yards of
   the opponent's next interception, recovery, clearance, block or goalkeeper action, when it
-  comes within three events), not where it was aimed: its end location and length give the outcome away (ground passes: median 15.6
-  yards completed, 12.7 incomplete). The switch flag is set only when the ball crossed 40 yards,
-  completed or not. Crosses, through balls and cut-backs are flagged on incomplete passes too.
+  comes within three events), not where it was aimed: its end location and length give the
+  outcome away (ground passes: median 15.6 yards completed, 12.7 incomplete). The switch flag is
+  set only when the ball crossed 40 yards, completed or not. Crosses, through balls and
+  cut-backs are flagged on incomplete passes too.
 - **xG.** Every penalty has xG 0.7835 and most have no freeze frame; shots straight from a
   corner sit at the xG floor (0.00018). Non-penalty xG runs about 4% below goals in every
   league; direct free kicks score 1.6 times their xG, open-play shots under 0.06 xG score less
