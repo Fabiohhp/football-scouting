@@ -34,6 +34,8 @@ def test_backtest_outcomes_come_after_the_market_view():
     assert bt.market_view == date(2016, 6, 30) and bt.outcome_base == date(2016, 8, 1)
     assert all(h > bt.outcome_base for h in bt.horizons)
     assert date(2020, 8, 31) not in bt.horizons
+    assert bt.primary_horizon == date(2019, 8, 31) and bt.age_bands[0] == 21
+    assert bt.big_five == ("GB1", "ES1", "IT1", "FR1", "L1")
 
 
 def test_compared_players_and_recording_contexts():

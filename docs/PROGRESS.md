@@ -14,7 +14,9 @@
   2026-10-18. Possession value: section 1 (the xT map) and section 2 (a player's xT: how to count
   it, possession, what it adds to the profiles) on 2026-10-19, section 3 (expected pass
   completion) and section 4.1 (candidates for the profiles) on 2026-10-23, section 4.2 (the
-  profiles with possession value) on 2026-10-24.
+  profiles with possession value) on 2026-10-24. Market value and the recruitment back-test:
+  section 1 (what the market paid for) on 2026-10-24, sections 2 (what happened next), 3 (the
+  back-test) and 4 (shortlists) on 2026-10-25.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -252,7 +254,7 @@ Phase plan:
   expected put on an even share of possession by its within-player slope. 2026-10-24:
   completion above expected in place of pass completion in every profile, xT in place of
   completed passes into the box (centre-forwards) and key passes (central midfielders); the
-  ease of a player's passes left for role discovery.
+  ease of a player's passes left for role discovery; no VAEP before the back-test.
 - New helpers `analysis.xt` and `analysis.xpass`; `analysis.profiles` builds the possession-value
   numbers (`value_sums`, `profile_rates`, `possession_effects`). 93 unit tests, 42 data tests
   (new: the map
@@ -265,21 +267,87 @@ Phase plan:
   numbers in the profiles on toy data, the profiles as chosen from the event counts, the
   processed completion above expected follows its slope).
 
+### Phase 3: Market value and the recruitment back-test `notebooks/04_recruitment_backtest.ipynb` (from 2026-10-24)
+- Section 1, what the market paid for: the 1,335 profiled players' Transfermarkt values on 30
+  June 2016, mostly winter values (a median 142 days old; one in eight, almost all the Euro 2016
+  squads, set after the season). A ridge regression of log value per comparison group, judged
+  with teams held out: age, minutes and league explain 29% to 43%, the team's goal difference per
+  match (better than points) takes it to 62% to 73%, and the twelve profile statistics then add
+  at most 0.03 (0.12 to 0.25 without the team); boosted trees do worse (0.57 to 0.64). Other
+  things equal, values peak at 22 or 23 (27 to 28 for central midfielders) and halve by 32;
+  ten more full matches add 16% to 49%, half a goal of goal difference per match 45% to 51%; La
+  Liga and Serie A pay a half to two thirds of the Premier League's price, Ligue 1 a third.
+  Within the profile the market paid for attacking output and the ball (xG, xT, dribbles, long
+  passes, completion above expected; at most a quarter more per standard deviation), nothing
+  for tackles, interceptions or pressures. The gap between the model and the value, within team
+  (unrelated to the team's strength) or across teams (mostly the team's strength, -0.46 to
+  -0.57), agrees with Transfermarkt's own revaluation after the season (0.32 and 0.26; minutes
+  alone 0.24): young players breaking through at strong teams, Leicester's champions still on
+  February values, veterans; across teams, small clubs' regulars. Under a €5M ceiling the two
+  gaps' lists cost the same; the list across teams takes half its players from the weakest fifth
+  of teams, the list within team spreads over all five, a fifth of it at the strongest teams.
+- Decided (`DECISIONS.md`, 2026-10-24): the value model, its checks with teams held out, and
+  the two gaps; the back-test reads the gap within team first, keeps the gap across teams as a
+  check, tests picking by the team's weakness alone as a baseline, and the shortlists leave out
+  the strongest teams' players.
+- Section 2, what happened next, scored before any prediction is checked: values on 1 August
+  2016 against values one, two, three and five years on (92% of the profiled players still
+  valued three years on, 81% five years on). Age explains 24% to 43% of value growth (players
+  under 21 worth 2.7 times as much three years on, aged 31 or 32 a quarter), so growth is scored
+  as a percentile within two-year age bands, players no longer valued at the bottom; the score
+  ranks the players still valued like growth above an age curve (0.93 to 0.98) and barely
+  depends on position or league (45 to 54). Players no longer valued are mostly veterans (83%
+  of those 33 and over five years on) and rarely come back. Careers from the appearances: 79% of
+  the players were in the big five one year on, 42% five years on (64% of those under 23);
+  regulars in the big five score 59 to 70 on value growth, the rest 36 to 42.
+- Section 3, the back-test, judged as fixed before the results: the top 10% of each group by the
+  gap within team (133 players) rank on average at the 63rd percentile of their age band three
+  years on (90% interval 56 to 68), 12 points above all players, and at 60 to 64 at every
+  horizon. The players with the most minutes in 2015/16 do as well (61.7) with a different
+  list (16 players shared); the model without the profile picks 99 of the same players and
+  scores 61.3, so the twelve statistics add nothing detectable. Cheap or young players alone are
+  close to average (53.4, 52.1), the weakest teams' regulars below it (47.3). The gap and
+  minutes are independent and add up (about 15 points of score each from the bottom of the
+  group to the top; the 16 players in both picks score 76). The gap's players kept careers
+  typical for their age: their values caught up with their numbers.
+- Decided (`DECISIONS.md`, 2026-10-25): value growth scored within age bands, the back-test read
+  three years on first, careers as secondary outcomes, a player's level read from their
+  appearances; how the back-test is judged (the pick, the baselines, the checks, the intervals).
+- Section 4, shortlists: the five largest gaps within team of each group among the 808 players
+  valued at €5M or less on 30 June 2016 outside the strongest fifth of teams. The 25 players were
+  young (a median 24.5), cheap (a median €0.6M) and mostly short of minutes (8 at their group's
+  median or more). Three years on they rank on average at the 73rd percentile of their age band
+  (72.9, 90% interval 60.8 to 81.8), 24.6 points above all players within the budget (13.1 to
+  32.6), at budgets of €2M to €10M, with five or ten players per group (67.7 to 74.0) and at
+  every horizon (65.1 to 75.7); in Transfermarkt values, €21.9M on 30 June 2016 and €188.2M
+  three years on (all players within the budget: 1.6 times). The gap without the profile
+  scores the same (72.6); the most-minutes shortlist 65.6 (the gap ahead by 7.3, -7.3 to 19.2).
+  Thirteen players scored 90 or more (Diop, Pellegrini, Piccini, Skhiri, Inglese, Wanderson,
+  Josef Martínez among them), six under 50, four of them attackers, two with teams relegated in
+  May 2016. The players of the 12 relegated teams score 45.3 three years on, the others 51.2.
+  The score counts growth after Transfermarkt's revaluation of July 2016, which had already
+  raised the shortlisted players' values by a median 1.67 times.
+- Decided (`DECISIONS.md`, 2026-10-25): the shortlists' budget, the players left out, their
+  length, and the gap within team alone as their ranking (minutes shown beside it).
+- New helpers `analysis.market`, `analysis.outcomes` and `analysis.backtest`; new back-test
+  settings in the config (`primary_horizon`, `age_bands`, `big_five`, `regular_minutes`,
+  `champions_league`). 112 unit tests, 49 data tests (new: picks of the top share or a set
+  number of each group, ties at the edge, rankings by several keys, picks made afresh on resamples; team strength on toy matches, profiles standardised within group,
+  folds and resamples that keep teams together, out-of-fold predictions never from a model that
+  saw the team, a model read one column at a time, value growth until a player is no longer
+  valued, age bands, scores within groups, excess growth, careers read from the season before
+  each horizon, club names linked through the players; every profiled player has a team and a
+  value on the market view, team strength adds up over each match, every profiled player has an
+  outcome at every horizon, players no longer valued score lowest in their band, levels follow
+  the minutes, club names find their clubs, one league per club and season).
+
 ## Next
 
-1. Market value and the recruitment back-test (notebook 04), after settling whether VAEP is
-   added (open question).
+1. Role discovery (`notebooks/05_role_discovery.ipynb`): roles within each comparison group
+   from the profiles, named, and checked for stability.
 
 ## Open questions
 
-- How value growth is scored in the back-test: raw growth is mostly age (EDA section 4.6), so
-  against players of the same age and comparison group; the exact baseline is a Phase 3
-  choice.
-- How careers are scored in the back-test: Transfermarkt's appearances cover 14 first
-  divisions only (EDA section 7.4), so a fifth to a third of pool players have no games on
-  record in a given later season while still valued; values, the club named on each valuation
-  and games in covered leagues are the candidates, to be chosen in Phase 3.
-- Whether VAEP is added after xT, depending on what xT shows.
 - Team style (Phase 3): whether a line-up can be fitted to the opponent from one season, for
   instance a midfielder who intercepts more against teams that risk their passes. A team's risk
   can be read from the ease of its passes (mean expected completion, notebook 03); whether a

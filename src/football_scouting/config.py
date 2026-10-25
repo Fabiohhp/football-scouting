@@ -90,6 +90,11 @@ class BacktestConfig:
     outcome_base: date  # value growth is measured from here
     horizons: tuple[date, ...]  # dates outcomes are read on
     still_valued_days: int  # older latest valuation at a horizon: no longer valued
+    primary_horizon: date  # the horizon the back-test reads first
+    age_bands: tuple[int, ...]  # lower ages of the bands value growth is compared within
+    big_five: tuple[str, ...]  # Transfermarkt ids of the big five leagues
+    regular_minutes: int  # a season's big five league minutes that make a regular
+    champions_league: str  # Transfermarkt id of the Champions League
 
 
 @dataclass(frozen=True)
@@ -199,11 +204,20 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
         outcome_base=bt["outcome_base"],
         horizons=tuple(bt["horizons"]),
         still_valued_days=bt["still_valued_days"],
+        primary_horizon=bt["primary_horizon"],
+        age_bands=tuple(bt["age_bands"]),
+        big_five=tuple(bt["big_five"]),
+        regular_minutes=bt["regular_minutes"],
+        champions_league=bt["champions_league"],
     )
     if [backtest.market_view, backtest.outcome_base, *backtest.horizons] != sorted(
         {backtest.market_view, backtest.outcome_base, *backtest.horizons}
     ):
         raise ValueError("back-test dates must be distinct and in order")
+    if backtest.primary_horizon not in backtest.horizons:
+        raise ValueError("backtest.primary_horizon must be one of the horizons")
+    if list(backtest.age_bands) != sorted(set(backtest.age_bands)):
+        raise ValueError("backtest.age_bands must be distinct and in order")
     return Config(
         paths=paths,
         statsbomb=statsbomb,

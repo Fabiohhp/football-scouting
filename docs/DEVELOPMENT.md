@@ -100,6 +100,24 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     share of possession);
   - `values.pool_valuations` and `values.value_at`: Transfermarkt valuations of pool players
     and each player's value (and its age) on a date;
+  - `market`: what the market paid for on the back-test's market view. `market_players` (each
+    profiled player's team and its strength, `team_strength`, and their value on the market
+    view), `profile_matrix` (a group's profile statistics, standardised), `value_model` (a ridge
+    regression of log value, age through a spline), `team_folds`, `out_of_fold` and
+    `team_bootstrap` (checks and intervals that keep a team's players together) and `partial`
+    (a fitted model read one column at a time);
+  - `outcomes`: what happened after the market view, for the back-test. `value_growth` (each
+    player's value at each horizon against 1 August 2016, and whether they are still valued),
+    `age_band` and `growth_score` (growth as a percentile within age bands, players no longer
+    valued at the bottom), `excess_growth` (growth less an age curve), `season_minutes` and
+    `career` (league, big five and Champions League minutes in the season before each horizon,
+    and the league played most in), `club_ids` and `club_leagues` (the club behind a valuation's
+    club name, and each club's league by season), and `player_outcomes`, all of them for the
+    profiled players;
+  - `backtest`: judging a ranking. `pick_weights` (the top share, or a set number, of each comparison group, rows
+    tied at the edge sharing the places left), `lexicographic` (a ranking by several keys),
+    `pick_mean` and `pick_means` (a pick's mean outcome, several rankings at once, ranked afresh
+    on each resample of `market.team_bootstrap`);
   - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a
     number the league explains, between team-matches and for players within comparison group,
     and how much the team explains beyond chance;
@@ -216,6 +234,11 @@ Transfermarkt:
   player's growth with players of the same age.
 - **`player_valuations.current_club_id` (and `player_club_domestic_competition_id`) is often
   the player's 2026 club**, not the club at the valuation date. Use `current_club_name`.
+- **Club names differ between tables**: valuations use the short name ("AS Roma"), games and
+  clubs the full name ("Associazione Sportiva Roma"); `analysis.outcomes.club_ids` links them
+  through the players. A valuation can predate a move: the club named on 31 August matches the
+  league played in the season starting then for only 78% to 81% of players, the club named on 30
+  June the season just ended for 96% to 97%. Read where a player played from `appearances`.
 - Missing dates of birth are filled only from `config/date_of_birth_overrides.csv` (with a
   source); the build fails if an override would replace an existing date.
 - Name and coverage gaps handled by hand in `config/player_match_overrides.csv`: Markel

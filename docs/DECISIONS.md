@@ -611,3 +611,166 @@ tracking) and does not feed the back-test.
   completion at 0.49 to 0.70 (Spearman), and a fifth to a third of players move 25 points or
   more; xT follows the statistics it replaces at 0.73 and 0.74.
 - The processed tables reproduce sections 2.2 and 3.2 of notebook 03 (largest difference 6e-17).
+
+## 2026-10-24: No VAEP before the back-test
+
+**Decision.** The back-test (notebook 04) reads the profiles of 2026-10-24, with xT and
+completion above expected; VAEP is not added. It is reconsidered if the back-test shows the
+profiles missing something that explains how players' careers went.
+**Reason.** xT, the possession-value number that credits passes and carries, mostly repeats the
+profiles: the group's twelve statistics predict 67% to 87% of it out of sample, and the part
+they miss is mostly noise (reliability -0.02 to 0.28 at 900 minutes; notebook 03, section 2.3).
+It took the place of a statistic in two profiles only, narrowly among central midfielders
+(section 4.1). VAEP would also value defensive actions and set pieces, but it is a second model
+to validate (the chances of scoring and conceding within the next actions), and socceraction's
+reference implementation, 1.5.3, requires numpy < 2 (2026-10-17).
+
+## 2026-10-24: The market's view of a player (notebook 04, section 1)
+
+**Decision.**
+- The market's view of a profiled player (their Transfermarkt value on 30 June 2016) is
+  modelled on the log scale, one comparison group at a time, by a ridge regression
+  (`analysis.market.value_model`) on what a club could see: age (through a cubic spline),
+  minutes, league, the team's goal difference per match in its league (weighted by the player's
+  minutes for players who changed teams), and the twelve profile statistics, shrunk and
+  standardised within the group.
+- Models are judged out of sample with ten folds that keep a team's players together, over 20
+  random splits of the teams; intervals come from resampling whole teams.
+- A player's gap is the model's out-of-sample value less their value, on the log scale, in two
+  versions: within team (the model above) and across teams (without the team's strength).
+
+**Reason.**
+- Age, minutes and league explain 29% to 43% of the variation in log value, the team's goal
+  difference 62% to 73%, and the profile then adds at most 0.03 (0.12 to 0.25 without the team).
+  Goal difference per match explains more than points per match (0.60 to 0.70), as it also
+  counts the margin of each result. Boosted trees on the same columns explain less (0.57 to 0.64
+  against 0.64 to 0.74, in four settings), so the regression's straight lines miss nothing that
+  matters, and they can be read: what the market paid per year of age, per 900 minutes, per half
+  a goal of goal difference, per league and per standard deviation of each statistic.
+- Teams are held out because teammates share their team's status: with a teammate in the
+  training folds, the model would learn a player's value from the team.
+- The gap within team is unrelated to the team's strength (Spearman -0.02 to -0.15), the gap
+  across teams mostly measures it (-0.46 to -0.57). Both say something the value did not: among
+  the 866 players revalued at the same club between 30 June and 1 August 2016, after the season,
+  the gap within team agrees with the revaluation at 0.32 (across teams 0.26, minutes alone
+  0.24), and the tenth with the largest gap went up 42%. That catch-up is outside the back-test,
+  which measures growth from 1 August (2026-10-13).
+
+## 2026-10-24: The gap the back-test reads first (notebook 04, section 1.6)
+
+**Decision.**
+- The back-test reads the gap within team first, and the gap across teams as a check. Both
+  are fixed before any outcome is looked at.
+- Picking players by their team's weakness alone, without their numbers, is one of the
+  back-test's baselines.
+- The shortlists (section 4) leave out the players of the strongest teams, besides keeping to a
+  budget.
+
+**Reason.**
+- Under a budget the two gaps find equally cheap players. Among players valued at €5M or less,
+  the ten largest gaps of each group cost a median of €0.6M to €2M either way, and the two lists
+  share 4 to 8 of their ten names.
+- They differ on where the players play. The list across teams takes half its players (25 of
+  50) from the weakest fifth of teams, where 28% of the players under the ceiling play. The
+  list within team spreads over the five fifths (6 to 13 players each).
+- The gap across teams mostly measures the team's strength (Spearman -0.46 to -0.57), so a rule
+  that picked weak teams' regulars without their numbers would make much the same list. Reading
+  it first would test whether the market's discount for weak teams was too steep, which the
+  baseline tests directly, rather than whether the profile finds players.
+- The gap within team agrees more with Transfermarkt's revaluation after the season (0.32
+  against 0.26).
+- A budget misses whether a player was for sale. Of the five largest gaps within team per group
+  under €5M, 8 of 25 play for the strongest fifth of teams, where 6% of the players under the
+  ceiling play. Among them are prospects at Arsenal and Manchester City, a reserve at Real
+  Madrid and Leicester City's champions still on February values, players strong teams do not
+  sell at their market value.
+
+## 2026-10-25: How outcomes are scored (notebook 04, section 2)
+
+**Decision** (`backtest` in `config/pipeline.yaml`, `analysis.outcomes`):
+- A player's value growth at a horizon (log of their value then over their value on 1 August
+  2016) is scored as a **percentile among the profiled players of the same age band**: two-year
+  bands from 21 to 32 on 30 June 2016, under 21 and 33 and over open. Players no longer valued
+  tie at the bottom of their band. Growth above an age curve is the check.
+- The back-test reads the score **three years on (31 August 2019) first**; one, two and five
+  years on support it.
+- **Careers are secondary outcomes**, read from Transfermarkt's appearances in the season that
+  ended before each horizon: league minutes in the big five (900 or more: a regular), minutes
+  in the Champions League, and the league played most in (the big five, another covered league,
+  none of the covered leagues, or no longer valued).
+- Both are fixed before any prediction is checked against them; section 2 reads neither the gaps
+  nor the profiles.
+
+**Reason.**
+- Raw growth is mostly age: age explains 24% to 43% of it out of sample, and three years on the
+  median player under 21 is worth 2.7 times their August 2016 value, the median player aged 31
+  or 32 a quarter. Within the bands the score is neutral to age by construction and barely
+  depends on position (48 to 52 on average) or league (45 to 54).
+- A percentile places the players no longer valued (8% of them three years on, 19% five years
+  on, mostly veterans) without inventing a value for them, and resists outliers. Growth above an
+  age curve, which would need a floor value for them, ranks the players still valued almost
+  alike (Spearman 0.93 to 0.98).
+- Three years on comes before the COVID cut of 8 April 2020, with 92% of the players still
+  valued and the young near their peak growth; one year on, age explains least (24%) and the
+  score correlates only 0.55 with the score three years on, and five years on a fifth of the
+  players are no longer valued.
+- Value growth follows careers: big five regulars score 59 to 70, the rest 36 to 42, and the
+  score correlates 0.45 to 0.54 with big five league minutes, so it is a fair primary outcome.
+- The league comes from the minutes, not the club named on the value: valuations name clubs by
+  their short name and can predate a move. The club named on 31 August matches the league of the
+  season that starts then for 78% to 81% of players who played; the club named on 30 June, the
+  season just ended, for 96% to 97%. Players with no league minutes in the covered leagues were
+  rarely at a covered club (4% to 7%): mostly at clubs in a lower division that season, or never
+  in the covered leagues on record.
+
+## 2026-10-25: How the back-test is judged (notebook 04, section 3)
+
+**Decision** (fixed before any result was seen):
+- The system's ranking is the gap within team, out of sample (section 1). Its pick is the top
+  10% of each comparison group (133 players); rows tied at the edge of a pick share the places
+  left (`analysis.backtest.pick_weights`).
+- The pick is judged by its players' mean score three years on (section 2); one, two and five
+  years on and the careers support it.
+- Baselines pick as many players per group by rules that need no profile: the most minutes in
+  2015/16, the cheapest on 30 June 2016, the youngest, and the weakest teams' players (team goal
+  difference per match, most minutes first). Checks: the gap across teams, and the gap of the
+  value model without the profile.
+- Intervals (90%) come from 200 resamples of whole 2015/16 teams, each pick made afresh;
+  differences between rankings are read on the same resamples.
+
+**Reason.**
+- A pick of the top of each group is how a ranking would be used: a shortlist per position, not
+  an ordering of every player. A tenth keeps 18 to 32 players per group; a larger pick would
+  dilute the top of the ranking, a smaller one widen the intervals.
+- The mean score answers the recruitment question directly: how the chosen players did against
+  players of their age. The whole ranking's Spearman correlation is reported beside it.
+- Each baseline is a rule a club could have followed with the same information. The weakest
+  teams' rule tests the bet the gap across teams makes (section 1.6), and the model without the
+  profile tests what the twelve statistics add.
+- Teammates share their team's fortunes (promotion, relegation, a sale of the squad), so players
+  are not independent; resampling whole teams keeps that in the intervals.
+
+## 2026-10-25: The shortlists (notebook 04, section 4)
+
+**Decision** (fixed before the shortlists' outcomes were looked at):
+- A shortlist takes the five largest gaps within team of each comparison group (25 players)
+  among the players valued at €5M or less on 30 June 2016, leaving out the players of the
+  strongest fifth of teams by goal difference per match (`analysis.backtest.pick_weights` with a
+  set number of places).
+- The gap within team alone ranks the shortlists; each player's minutes in 2015/16 are shown
+  beside it.
+- The shortlists are judged as the back-test: the mean score three years on, against every
+  player within the budget and the shortlists of the gap without the profile and of the most
+  minutes, with 90% intervals from 200 resamples of whole teams. Budgets of €2M and €10M, ten
+  players per group and the other horizons are checks.
+
+**Reason.**
+- The budget is the ceiling the gap was chosen under (section 1.6). Strong teams do not sell
+  their prospects and regulars at their market value: 8 of the 25 largest gaps within team under
+  the ceiling played for the strongest fifth of teams (Iwobi, Iheanacho, Nacho, Albrighton and
+  Wes Morgan among them).
+- The gap and minutes together scored best in the back-test (section 3.3: the 16 players in both
+  picks scored 76, either alone about 60), but that was found after the results and no later
+  season is left to test it on. It stays a finding; the shortlists keep the system as fixed.
+- Five players per group is a list a scout can follow up player by player; ten per group is the
+  check.
