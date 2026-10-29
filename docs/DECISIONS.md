@@ -774,3 +774,247 @@ reference implementation, 1.5.3, requires numpy < 2 (2026-10-17).
   season is left to test it on. It stays a finding; the shortlists keep the system as fixed.
 - Five players per group is a list a scout can follow up player by player; ten per group is the
   check.
+
+## 2026-10-28: The descriptors a style is read from (notebook 05, section 1)
+
+Revised 2026-10-29: descriptors read from the matches in a player's own position (entry below).
+
+**Decision.**
+- Style within each outfield comparison group is read from **style descriptors**
+  (`analysis.style`), not from the profile's twelve statistics: shares and places rather than
+  volumes (where a player touches the ball and defends, what they do with the ball, how they
+  pass, with which foot, how they defend). The profile judges how well a player plays their role.
+- Each descriptor is read from the matches a player spent at least half of in a position of
+  their comparison group, and put on an **even share of possession** by its slope within players:
+  a weighted least-squares slope on the team's share of the ball with a fixed effect per player,
+  fitted per comparison group on players with 900+ such minutes (`style.possession_slopes`,
+  `style.adjust`). Counts recorded differently by league or date are first rescaled by recording
+  context, as in the profiles.
+- Each group keeps the descriptors that are reliable within the group (0.5 or more at 900
+  minutes, on an even share), that the team explains less than 0.4 of beyond chance, and that do
+  not correlate at 0.8 or more with a more reliable one (Spearman, players with 900+ minutes). The
+  share of passes with the left foot is left out, and so is the share with the inside foot where
+  the flank a player is put on, given their foot, explains half of it or more, except among
+  attacking midfielders and wingers. This gives 9 descriptors for centre-backs, 16 for full-backs,
+  21 for central midfielders, 20 for attacking midfielders and wingers and 19 for centre-forwards
+  (`roles.descriptors` in `config/pipeline.yaml`).
+- Descriptors that did not stay with the players who changed team (the height of defensive
+  actions, clearances and blocks, tackles per defensive action) are kept where they pass the
+  rules.
+
+**Reason.**
+- The descriptors are at least as reliable as the profiles' statistics (median 0.62 to 0.80 at
+  900 minutes by group, against 0.61 to 0.71; the same among centre-backs and centre-forwards)
+  and add what the profile lacks: the foot follows no profile statistic above 0.42 (Spearman),
+  the spreads of a player's touches and the shares of forward and backward passes none above
+  0.56. A role taken from the profile would make ranking players within it circular. Alternative
+  tested: the profile itself. Its first principal component (22% to 33% of the variation) already
+  sets two ways of playing each position against each other and barely follows the team's goal
+  difference (0.02 to 0.28) or the player's market value (0.02 to 0.37), so roles from the
+  profile would not simply split good players from weak ones; the descriptors are preferred for
+  what they add and to keep the profile independent of the role.
+- Possession: within players, ten more points of possession raise touches by 2.3 to 3.8 yards and
+  defensive actions by 3.6 to 5.9 yards, and add 3 to 4 counterpressures per 100 pressures. On an
+  even share, the heights, clearances and blocks, counterpressures and final-third pressures no
+  longer follow the team's possession (at most 0.24 in absolute value, from 0.15 to 0.55), and
+  the median reliability changes by -0.002.
+- Reliability 0.5: the split-half correlation at 900 minutes is the share of the differences
+  between players at that sample that is real, and 900 minutes is where players are compared
+  from. In a principal component analysis every standardised descriptor weighs the same, so a
+  noisy one adds chance to the axes. The rule leaves out through balls (outside attacking
+  midfielders and wingers), counterpressures, tackles per defensive action (among centre-backs,
+  attacking midfielders and wingers and centre-forwards), final-third pressures (outside central
+  midfielders and centre-forwards), switches among centre-forwards (0.49), and among centre-backs
+  dribbles and shots per touch and crosses per pass (0.36, 0.45, 0.33), the height of their
+  defensive actions (0.39) and their clearances and blocks (0.48).
+- The team's share, 0.4: the descriptors left out are at 0.40 to 0.52, and no other passes 0.39.
+  They are how defenders pass (pass ease and high passes among centre-backs, 0.47 and 0.48, and
+  full-backs, 0.49 and 0.44; pass ease among central midfielders, 0.41), centre-backs' aerial
+  duels per touch (0.52), and where defenders play (centre-backs' touch height and spreads, 0.40
+  to 0.43; full-backs' touch height, 0.50, width, 0.41, and forward passes, 0.42): how a team
+  builds its play, how high its line stands and how opponents attack it. Pass completion, which
+  left the profiles as a team number, stood at 0.41 to 0.60 among defenders and central
+  midfielders (2026-10-18).
+- Pairs at 0.8, the profiles' limit: pass length and the share of long passes (0.92 to 0.97 in
+  every group), pass ease and high passes (0.81 and 0.82 among attacking midfielders and wingers
+  and centre-forwards), passes and dribbles per touch among attacking midfielders and wingers
+  (0.83), touch width and the spread across the pitch among centre-forwards (0.94).
+- The left foot (reliability 0.99 to 1.00) says which side a player plays: a left-footed and a
+  right-footed full-back can play the same role on opposite flanks. It is left to the similarity
+  search. The inside foot says the same where a player is put on a flank: the flank of the other
+  foot explains it at R² 0.88 among centre-backs, 0.81 among full-backs and 0.68 among central
+  midfielders. Among attacking midfielders and wingers (0.80) the side of the other foot is the
+  role itself, the inverted winger who cuts inside; among centre-forwards the flank explains none
+  of it (0.03).
+- Players who changed team kept a median 0.76 of the correlation their descriptors' reliability
+  allowed, on an even share: their foot, carrying, passing length and crossing moved with them;
+  the height of their defensive actions (-0.31), their clearances and blocks (-0.37) and their
+  tackles did not. They are 22 (6 central midfielders, 5 attacking midfielders and wingers, 5
+  centre-forwards, 4 centre-backs, 2 full-backs) with wide intervals. How much of each axis the
+  team explains is measured on the axes (section 2).
+
+## 2026-10-28: Style axes rather than roles (notebook 05, section 2)
+
+Revised 2026-10-29: fitted again on the descriptors read from a player's own position, the
+congruence averaged over 20,000 halves (entry below).
+
+**Decision.**
+- Within each outfield comparison group, a player's style is read as scores on **style axes**,
+  not as membership of discrete roles: varimax-rotated principal components of the group's
+  descriptors (`roles.descriptors`, on an even share of possession, shrunk towards the group's
+  mean with K = 900 (1 - r) / r per descriptor and group, as the profiles are), fitted on the
+  group's regulars (900+ minutes in the group's positions); every profiled player is scored
+  (`analysis.roles`).
+- The number of axes follows a rule fixed before any axis was read: start from the components
+  whose eigenvalue stands above the 95th percentile of 200 shuffles of the descriptors (parallel
+  analysis), and drop the last axis until every axis has a split-half reliability of 0.7 or more
+  at 900 minutes and a mean Tucker congruence of 0.85 or more with the axes fitted on random
+  halves of the regulars, averaged over 20,000 halves. This keeps three axes for centre-backs,
+  full-backs and centre-forwards and four for central midfielders and for attacking midfielders
+  and wingers (`roles.axes` in `config/pipeline.yaml`).
+- The positions StatsBomb records are a check, not an input.
+
+**Reason.**
+- Roles as groups were tested first, under a rule fixed beforehand: Gaussian mixtures of 2 to 7
+  roles on the principal components holding 80% of the descriptors' variation, with full, shared
+  or diagonal covariance; the lowest BIC among the mixtures in which every role is the main role
+  of at least 10% of the regulars and that refits on random halves of the regulars reproduce (a
+  mean adjusted Rand index of 0.6 or more over 50 halves). In every group the lowest BIC is a
+  two-role mixture with diagonal covariance, 16 to 46 points better than one component, and none
+  is reproduced (0.09 to 0.57, central midfielders the closest); no mixture of three roles or
+  more reaches more than 0.44. Roles that change with the players fitted would name noise.
+- The axes are reliable (0.72 to 0.89 at 900 minutes, against a median of 0.61 to 0.71 for the
+  profiles' statistics), found again in half the players (congruence 0.86 to 0.99), and hold 52%
+  to 66% of the descriptors' variation. Each gathers a few descriptors, so it can be named, and
+  scores on axes suit a similarity search.
+- Axes left out: a fourth for centre-backs and for full-backs (reliability 0.62 and 0.64), a
+  fifth and a fourth for centre-forwards (congruence 0.818 and 0.845 ± 0.001).
+- 20,000 halves: the congruence is a mean over random halves, first planned over 50.
+  Centre-forwards' fourth axis showed that such a mean moves from one sample of halves to the
+  next by more than an axis on the line can bear: from 0.77 to 0.90 over 50 halves, from 0.835 to
+  0.855 over 1,000. The first 50 halves kept it (0.86), a check over 1,000 left it out (0.837),
+  another 1,000 kept it (0.854). Over 20,000 halves the mean is 0.845 ± 0.001, so the axis is
+  left out by the rule's own threshold rather than by the sample of halves. Every other count is
+  the same over 50, 1,000 or 20,000 halves.
+- Alternative considered: archetypes (each player a mix of pure types at the edges of the cloud),
+  closer to a scout's vocabulary, but the extremes are the noisiest players and the types would
+  face the stability test the mixtures failed.
+- Recorded positions: the descriptors tell them apart at a balanced accuracy of 0.57 to 0.75,
+  and a position places players clearly on only three axes (the position explains 0.18 to 0.41
+  of them, at most 0.08 of the others). They describe the formation more than the style.
+
+## 2026-10-29: Style read from a player's own position (notebook 05, sections 1 and 2)
+
+**Decision.**
+- A player's style descriptors are read only from the matches they spent at least half of in a
+  position of their comparison group (`style.group_share`, `style.IN_GROUP`): 88% of the
+  profiled players' player-matches and 91% of their minutes. The regulars the axes are fitted on
+  are the players with 900 such minutes or more (1,176; 1,266 counting every match).
+- The spreads of a player's touches along and across the pitch are measured within each match
+  and pooled over matches, not over the season's touches.
+- The share of passes with the inside foot is left out of a group where the flank a player is put
+  on, given their foot, explains half of it or more, except among attacking midfielders and
+  wingers.
+- The rules of 2026-10-28 are unchanged and were applied again; their outcome is in the two
+  entries above.
+
+**Reason.**
+- The first version read each player's whole season. Before the axes were named, their ends were
+  checked against how each player was deployed, and three of 18 axes measured deployment rather
+  than style. Centre-backs' first axis (touches high and wide, crosses) followed the share of a
+  player's minutes outside centre-back at a Spearman correlation of 0.54, and 78% of its top
+  tenth had spent more than a fifth of their minutes elsewhere, mostly at full-back.
+  Centre-backs' fourth and full-backs' third axes followed the share of minutes on the less-used
+  flank (0.64 and 0.66): 67% and 69% of their top tenth had played on both flanks, none of their
+  bottom tenth. A season's spread of touches across the pitch grows when a player changes flank
+  between matches, and the inside foot was explained by the flank of the other foot at R² 0.80
+  to 0.87 among centre-backs, full-backs and attacking midfielders and wingers (0.65 among
+  central midfielders, 0.12 among centre-forwards).
+- Read from their own position, no axis follows deployment beyond 0.35 (Spearman, section 2.3),
+  and centre-backs' sides are no longer told apart (balanced accuracy 0.57, chance 0.50). The
+  first version's split of centre-backs into two roles (57 who touched the ball higher and wider)
+  was that same minority and is gone.
+- What changes: centre-backs keep 9 descriptors rather than 15 (their touch height and spreads
+  are the team's, 0.40 to 0.43; their crosses are no longer reliable, 0.33, as a centre-back
+  crosses when played at full-back), full-backs 16 rather than 20 (touch height, width and
+  forward passes are the team's), attacking midfielders and wingers 20 rather than 22,
+  centre-forwards 19 rather than 20. The median reliability of centre-backs' descriptors falls
+  from 0.71 to 0.62: part of what told them apart was where else they played. The axes become
+  three for centre-backs, full-backs and centre-forwards and four for central midfielders and
+  attacking midfielders and wingers (first version: four for centre-backs, full-backs and central
+  midfielders, three for the others), and no group keeps a mixture of roles (first version:
+  central midfielders and centre-backs).
+- Half a match: each match is read in the role a player mostly played in it; the 9% of minutes
+  left out are matches spent mainly in another group's positions.
+- The inside foot stays among attacking midfielders and wingers (R² 0.80): there the side of the
+  other foot is the role itself, and their third axis sets the inverted winger who cuts inside
+  and plays through balls against the winger who stays wide and crosses. Among centre-forwards
+  the flank explains none of it (0.03).
+
+## 2026-10-29: Names of the style axes (notebook 05, section 3)
+
+**Decision.**
+- Each style axis is named by its two ends, low and high (`AXIS_NAMES` in the notebook):
+  - centre-backs: short passer ↔ long passer; ball-carrier ↔ direct passer; central ↔ wide;
+  - full-backs: dribbler ↔ box defender; holds position ↔ gets into the box; short passer and
+    presser ↔ long passer;
+  - central midfielders: deep pivot ↔ advanced midfielder; short passer and presser ↔ long
+    passer; ground passer ↔ aerial presence; ball-carrier ↔ forward passer;
+  - attacking midfielders and wingers: link player ↔ final-third attacker; lay-off runner ↔
+    forward passer; inside forward ↔ touchline winger; ball-carrier ↔ aerial presence;
+  - centre-forwards: target man ↔ mobile forward; deep-lying forward ↔ penalty-box striker;
+    forward passer ↔ lay-off forward.
+- A name is read from the axis's loadings and checked against three portraits of its ends: the
+  three lowest and highest scores among players with 1,800 minutes or more in their group's
+  positions, the recorded medians of the descriptors loading most on it in the bottom and top
+  deciles of the regulars, and where those deciles touch the ball (`style.touch_map`: each
+  player counting once, every match mirrored so that the player's touches lean to the same side,
+  touches counted as in the descriptors, set pieces included).
+- The notebook checks that the descriptor loading most on each axis is the one its name was read
+  from: a refit that reorders or flips the axes fails instead of mislabelling them.
+
+**Reason.**
+- Loadings alone would have misnamed three axes. 94% of centre-backs' touches in the opposition
+  box come after a corner or a free kick, so their second axis sets carrying the ball out against
+  passing it on at once and forward, and attacking set pieces, not reaching the box in play.
+  Centre-backs keep no clearance or aerial descriptor (section 1.5), so "stopper" would claim
+  more than the axis measures. Centre-forwards' forward passing on their
+  third axis is not flick-ons (14% of forward passes headed at the low end, 9% at the high end).
+- Set pieces in the portraits: the ends of central midfielders' third axis and of attacking
+  midfielders' and wingers' second differ in who takes corners and free kicks (4 and 6 times as
+  many per touch at one end as at the other), which the names' descriptions say.
+- Examples from 1,800 minutes: their scores owe least to the shrinkage towards the group's mean.
+- Mirroring each match: a side is not a style (section 1.5). Unmirrored, a decile's left- and
+  right-sided players cancel out; mirrored by season, a player who changed flank would still show
+  on both sides.
+- Numbers beside the maps: on three axes (central midfielders' second, attacking midfielders'
+  and wingers' fourth, centre-forwards' third) the two ends' touch maps are no further apart than
+  two random groups of regulars (95th percentile), and centre-backs' first is barely beyond it;
+  a heat map alone would not show them.
+
+## 2026-10-29: Styles against the market and the back-test (notebook 05, section 4)
+
+**Decision.**
+- Style is read against the market and the outcomes, not added to the back-test: the axes are
+  set against the gap within team and the growth score three years on of notebook 04, and the
+  shortlists are placed on them. The back-test's rankings, fixed before any outcome was read,
+  stay as they are.
+- The 34 correlations (17 axes, the gap and growth) are judged together under Holm's correction
+  at a 10% familywise error, with p-values from 10,000 resamples of whole teams (twice the share
+  of resamples on the other side of zero).
+
+**Reason.**
+- A ranking that used style after its link with growth had been read would be fitted to the
+  outcomes it is judged on.
+- Read one at a time at 10%, 34 correlations would turn up about three leads by chance; Holm's
+  correction keeps the chance of any false lead among them at 10%.
+- 10,000 resamples: Holm's smallest threshold is 0.10 / 34, about 0.003, and a p-value read from
+  resamples is only as fine as their number. Over 2,000 the strongest correlation (centre-
+  forwards' third axis with growth) read p = 0.002 and passed (Holm 0.07); over 10,000 it reads
+  0.0046 and does not (Holm 0.16). As with the congruence of the axes, a decision at a threshold
+  needs the estimate precise at the threshold.
+- Outcome: no correlation passes. The axes add nothing to the model of the value on 30 June 2016
+  (out-of-sample R² 0.001 to 0.009 lower), none follows the gap beyond ±0.10, and the shortlists
+  have no style in common (10 of 25 at an end of an axis, about 13 by chance). Centre-forwards
+  who lay the ball off grew less than those who pass it forward (-0.21, steady from two to five
+  years on and beside minutes and the gap): an open question for the case study.

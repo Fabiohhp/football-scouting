@@ -40,8 +40,8 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   Makefile targets; `notebooks/` hold the analyses and import their logic from the package;
   `reports/figures/` holds the figures used by the README.
 - All parameters (sources, pinned versions, competitions, seasons, position and comparison
-  groups, who is compared, profiles, recording contexts, the xT map, back-test dates, paths,
-  HTTP retry policy) come from `config/pipeline.yaml` via
+  groups, who is compared, profiles, role descriptors and style axes, recording contexts, the
+  xT map, back-test dates, paths, HTTP retry policy) come from `config/pipeline.yaml` via
   `football_scouting.config.load_config()`. No hard-coded IDs or paths in code.
 - Pipeline steps are idempotent and resumable: cached downloads (`http.fetch_json_cached`),
   atomic writes (`.part` + rename), retries with exponential backoff, existing files skipped.
@@ -118,6 +118,24 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     tied at the edge sharing the places left), `lexicographic` (a ranking by several keys),
     `pick_mean` and `pick_means` (a pick's mean outcome, several rankings at once, ranked afresh
     on each resample of `market.team_bootstrap`);
+  - `style`: which role a player plays, for role discovery. `player_match_style` (the sums
+    `metrics.player_match_counts` lacks: touch spreads within the match, pass length and
+    direction, pass height, the foot, carry distance), `descriptors` (27 shares and places in
+    five `FAMILIES`, from any sum of rows, defensive shares built from their rescaled parts),
+    `group_share` (the share of each match a player spent in a position of their comparison
+    group; descriptors are read from the matches with `IN_GROUP` of it or more),
+    `possession_slopes` and `adjust` (each descriptor's slope on the team's share of possession
+    within players, and the descriptors on an even share), `touch_map` (where a player touches
+    the ball, as shares of a grid of zones, each match mirrored so that the player's side is the
+    same). The descriptors each group's style is read from are `roles.descriptors` in the config;
+  - `roles`: how the players of a comparison group differ in style, from those descriptors.
+    `shrink` (pulled towards the group's mean by their reliability, as the profiles are); roles
+    as groups, `fit` (a Gaussian mixture on principal components), `membership`, and
+    `candidates`, `stability` and `choose` (the rule for how many, with refits on random
+    halves); style axes, `parallel_analysis` and `retained` (components above shuffled data),
+    `fit_axes` (varimax-rotated principal components, `Axes.scores`) and `congruence` (the axes
+    found again in random halves, `HALVES` of them). The number of axes per group is `roles.axes`
+    in the config;
   - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a
     number the league explains, between team-matches and for players within comparison group,
     and how much the team explains beyond chance;

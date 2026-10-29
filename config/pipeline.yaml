@@ -118,6 +118,42 @@ replaced:
   AMW: {completion_above_expected: pass_completion}
   CF: {completion_above_expected: pass_completion, xt: passes_into_box}
 
+# The descriptors each outfield comparison group's style is read from (decided 2026-10-28, revised
+# 2026-10-29; evidence in notebooks/05_role_discovery.ipynb, section 1): names of `analysis.style`
+# descriptors, from the matches a player spent at least half of in a position of their group, put
+# on an even share of possession by their slope within players. Each is reliable within its group
+# (0.5 or more at 900 minutes on an even share), the team explains less than 0.4 of it beyond
+# chance, and no two correlate at 0.8 or more (Spearman, the more reliable kept). The share of
+# passes with the left foot says which side a player plays, not which role; so does the inside foot
+# where the flank a player is put on explains half of it or more, except among attacking
+# midfielders and wingers, where it marks the inverted winger.
+# `axes`: how many style axes each group's players are read on (decided 2026-10-28, revised
+# 2026-10-29; evidence in notebooks/05_role_discovery.ipynb, section 2): varimax-rotated principal
+# components of the shrunk descriptors of the group's regulars, from those above shuffled data,
+# while every axis is reliable (0.7 or more at 900 minutes) and found again in random halves of the
+# regulars (a mean congruence of 0.85 or more over 20,000 halves, `analysis.roles`). A Gaussian
+# mixture found no reproducible roles in any group.
+roles:
+  descriptors:
+    CB: [touch_width, box_share, pass_share, carry_distance, pass_length, forward_share,
+         backward_share, switch_share, press_share]
+    FB: [spread_length, spread_width, defence_height, box_share, pass_share, carry_distance,
+         dribble_share, shot_share, cross_share, pass_length, backward_share, switch_share,
+         press_share, tackle_share, clearance_share, aerial_share]
+    CM: [touch_height, touch_width, spread_length, spread_width, defence_height, box_share,
+         pass_share, carry_distance, dribble_share, shot_share, cross_share, pass_length,
+         high_share, forward_share, backward_share, switch_share, press_share, tackle_share,
+         clearance_share, high_press_share, aerial_share]
+    AMW: [touch_height, touch_width, spread_length, spread_width, defence_height, box_share,
+          pass_share, carry_distance, shot_share, cross_share, pass_ease, pass_length,
+          forward_share, backward_share, switch_share, through_share, inside_foot_share,
+          press_share, clearance_share, aerial_share]
+    CF: [touch_height, touch_width, spread_length, defence_height, box_share, pass_share,
+         carry_distance, dribble_share, shot_share, cross_share, pass_ease, pass_length,
+         forward_share, backward_share, inside_foot_share, press_share, clearance_share,
+         high_press_share, aerial_share]
+  axes: {CB: 3, FB: 3, CM: 4, AMW: 4, CF: 3}
+
 # Statistics recorded differently between leagues and, in the Premier League, from match week 19.
 # Players are compared on them within recording context: each league, and the Premier League
 # before and from `since` (decided 2026-10-11 and 2026-10-18; evidence in

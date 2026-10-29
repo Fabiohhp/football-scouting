@@ -126,6 +126,12 @@ ON_BALL = (
     "Pass", "Ball Receipt*", "Carry", "Dribble", "Shot", "Miscontrol", "Dispossessed",
     "Ball Recovery", "Interception", "Clearance", "Block", "50/50", "Shield",
 )  # fmt: skip
+# SQL condition on `events`: the event is a touch (an on-ball action that kept or used the ball).
+TOUCH = (
+    f"type IN ({', '.join(repr(t) for t in ON_BALL)})"
+    " AND event_id NOT IN (SELECT event_id FROM ball_receipts WHERE outcome = 'Incomplete')"
+    " AND event_id NOT IN (SELECT event_id FROM ball_recoveries WHERE recovery_failure)"
+)
 TACKLE_WON = ("Won", "Success In Play", "Success Out")
 PROGRESSIVE_RULES = ("10y", "zones", "25pct")
 UNITS_PER_METRE = 120 / 105  # pitch length in StatsBomb units over a 105 m pitch
@@ -159,7 +165,6 @@ def progressive(rule: str, kind: str) -> str:
 
 def player_match_counts(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     """One row per player and pool match played: minutes and event counts."""
-    on_ball = ", ".join(f"'{t}'" for t in ON_BALL)
     tackle_won = ", ".join(f"'{o}'" for o in TACKLE_WON)
     box, end_box = in_box("x", "y"), in_box("end_x", "end_y")
     prog_passes = ",\n".join(
@@ -263,12 +268,7 @@ def player_match_counts(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
             SELECT match_id, player_id, count(*) AS touches,
                    count(*) FILTER (WHERE {box}) AS touches_in_box,
                    sum(x) AS sum_x, sum(abs(y - 40)) AS sum_width
-            FROM events
-            WHERE type IN ({on_ball})
-              AND event_id NOT IN (SELECT event_id FROM ball_receipts
-                                   WHERE outcome = 'Incomplete')
-              AND event_id NOT IN (SELECT event_id FROM ball_recoveries
-                                   WHERE recovery_failure)
+            FROM events WHERE {TOUCH}
             GROUP BY ALL)
         SELECT pm.match_id, m.competition_id, m.match_date, pm.team_id, pm.player_id,
                pm.seconds_played / 60 AS minutes,

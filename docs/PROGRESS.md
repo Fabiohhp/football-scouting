@@ -16,7 +16,10 @@
   completion) and section 4.1 (candidates for the profiles) on 2026-10-23, section 4.2 (the
   profiles with possession value) on 2026-10-24. Market value and the recruitment back-test:
   section 1 (what the market paid for) on 2026-10-24, sections 2 (what happened next), 3 (the
-  back-test) and 4 (shortlists) on 2026-10-25.
+  back-test) and 4 (shortlists) on 2026-10-25. Role discovery: section 1 (which numbers
+  describe a role) on 2026-10-27 and 2026-10-28, section 2 (roles or a continuum) on
+  2026-10-28; both read again from a player's own position on 2026-10-29; sections 3 (names and
+  portraits of the style axes) and 4 (styles, the market and the back-test) on 2026-10-29.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -341,10 +344,85 @@ Phase plan:
   outcome at every horizon, players no longer valued score lowest in their band, levels follow
   the minutes, club names find their clubs, one league per club and season).
 
+### Phase 3: Role discovery `notebooks/05_role_discovery.ipynb` (from 2026-10-27)
+- Section 1, which numbers describe a role: 27 candidate descriptors in five families
+  (`analysis.style`), shares and places rather than volumes (where a player touches the ball,
+  what they do with it, how they pass, with which foot, how they defend), for the 1,335 profiled
+  players, counts rescaled by recording context, read from the matches each player spent mainly
+  in a position of their group (88% of player-matches, 91% of minutes; 1,176 regulars) with
+  spreads measured within each match. They are at least as stable as the profiles' statistics
+  (median reliability at 900 minutes 0.62 to 0.80 by group, against 0.61 to 0.71; the same for
+  centre-backs and centre-forwards); the foot a player passes with is fixed (0.99 to 1.00).
+  Within players, ten more points of possession raise touches by 2.3 to 3.8 yards and defensive
+  actions by 3.6 to 5.9; on an even share by these slopes, places and pressing no longer follow
+  possession, at no cost in reliability (median change -0.002). Where defenders play and how they
+  pass stays partly the team's: centre-backs' and full-backs' touch height, pass ease and high
+  passes, centre-backs' spreads and aerial duels keep a team share of 0.40 to 0.52. The 22
+  players who changed team in January kept about three quarters of the correlation their
+  numbers' reliability allowed: foot, carrying, passing length and crossing moved with them, the
+  height of their defensive actions, clearances and tackles did not. Pass length and long passes
+  (0.92 to 0.97) and pass ease and high passes (-0.81 to -0.92) repeat each other; shares of
+  actions follow the profile's counts per 90 (dribbles 0.90 to 0.96, tackles 0.84 to 0.90),
+  places, passing shape and foot are new. The profile's first principal component sets two ways
+  of playing each position against each other (passers against aerial defenders among
+  centre-backs) and barely follows the team's goal difference (0.02 to 0.28) or market value
+  (0.02 to 0.37).
+- Section 1.5, the descriptors chosen (`DECISIONS.md`, 2026-10-28 and 2026-10-29): style is read
+  from the descriptors, not the profile, on an even share of possession; each group keeps those
+  reliable at 0.5 or more, with a team share under 0.4 and no pair at 0.8 or more, the left foot
+  left out as a side and the inside foot too where the flank explains half of it (centre-backs,
+  full-backs, central midfielders: R² 0.68 to 0.88): 9 for centre-backs, 16 for full-backs, 21
+  for central midfielders, 20 for attacking midfielders and wingers, 19 for centre-forwards
+  (`roles.descriptors` in the config).
+- Deployment (2026-10-29): read over whole seasons, three of the first version's 18 axes
+  measured how a player was deployed (centre-backs' high-and-wide axis followed minutes outside
+  centre-back at 0.54; two axes followed time on both flanks at 0.64 and 0.66). Reading each
+  player's matches in their group's positions, spreads within match and the inside foot as a
+  side removed it (at most 0.35).
+- Section 2, roles or a continuum (`DECISIONS.md`, 2026-10-28 and 2026-10-29): the descriptors,
+  shrunk by their reliability, show no discrete roles. Gaussian mixtures of 2 to 7 roles under a
+  rule fixed beforehand (lowest BIC, every role at least 10% of the regulars, refits on random
+  halves reproducing it at an adjusted Rand index of 0.6): no mixture is reproduced in any group
+  (two roles at most 0.57, central midfielders; three or more at most 0.44). Style is read
+  instead on varimax-rotated principal components: three axes for centre-backs, full-backs and
+  centre-forwards, four for central midfielders and attacking midfielders and wingers (parallel
+  analysis, then reliability 0.7 and congruence 0.85 averaged over 20,000 random halves: over
+  fewer the mean moved enough to decide centre-forwards' fourth axis, 0.845 ± 0.001, by
+  chance), reliable at 0.72 to 0.89, congruence 0.86 to 0.99, 52% to 66% of the variation. The
+  recorded positions are told apart at a balanced accuracy of 0.57 to 0.75 and place players on
+  only three axes; the team explains up to 0.48 of an axis (full-backs who attack the box), most
+  under a quarter; long-passing axes lean against possession (-0.28 to -0.34).
+- Section 3, names and portraits (`DECISIONS.md`, 2026-10-29): each axis is named by its two
+  ends (for instance deep pivot ↔ advanced midfielder, inside forward ↔ touchline winger, target
+  man ↔ mobile forward, ball-carrier ↔ direct passer among centre-backs), checked against the
+  players at either end (1,800 minutes or more), the recorded medians of the bottom and top
+  deciles and where they touch the ball (`style.touch_map`, each match mirrored to the player's
+  side). Seven axes move 14% to 35% of touches between their ends (two random groups of
+  regulars: 4% to 6%); the other ten, 7% to 12%, set apart how players pass, carry and defend,
+  and three of them are no further apart on a touch map than random groups. 94% of centre-backs'
+  touches in the opposition box come after a corner or a free kick, and the ends of two axes
+  differ in who takes the set pieces.
+- Section 4, styles, the market and the back-test (`DECISIONS.md`, 2026-10-29): the market priced
+  no style beyond a player's numbers and context (the axes lower notebook 04's out-of-sample R²
+  by 0.001 to 0.009; no axis follows the gap within team beyond ±0.10), and no correlation with
+  growth three years on passes Holm's correction over the 34 (10,000 resamples of teams).
+  Centre-forwards who lay the ball off grew less than those who pass it forward (-0.21, Holm
+  0.16), steadily across horizons and beside minutes and the gap. The 25 shortlisted players
+  have no style in common (10 at an end of an axis, about 13 by chance).
+- New helpers `analysis.style` and `analysis.roles`; `metrics.TOUCH` (the touch condition,
+  shared); `roles` in the config. 126 unit tests, 54 data tests (new: descriptors as shares and
+  places, spreads as standard deviations within matches, the share of a match spent in the
+  player's group, touch maps mirrored to the same side in each match, defensive shares built from rescaled parts, possession slopes within players
+  against a confounded simulation; the style sums reconcile with the event tables, descriptors
+  stay in range, spreads within matches are at most the season's, every match played has its
+  group share; roles: shrinkage, a mixture finding separated roles numbered by height, parallel
+  analysis against shuffled data, varimax at the best rotation, axis scores standardised and
+  uncorrelated, congruence of clear axes).
+
 ## Next
 
-1. Role discovery (`notebooks/05_role_discovery.ipynb`): roles within each comparison group
-   from the profiles, named, and checked for stability.
+1. Similarity search and replacements (Phase 3), reading players through their profiles and
+   style axes.
 
 ## Open questions
 
@@ -357,6 +435,12 @@ Phase plan:
   conservatively (450-minute players fill 39% to 45% of a group's predicted top 10% where they
   are half the players), which is right on average but can bury a young player with strong
   numbers. Ranking young players also by an optimistic bound is a back-test choice.
+- Style axes are computed in notebook 05; the similarity search and the case study may need
+  them as processed tables (as the profiles are), built by the pipeline.
+- Centre-forwards who lay the ball off grew less in value than those who pass it forward
+  (Spearman -0.21 three years on, short of Holm's correction over 34 correlations, steady from
+  two to five years on and beside minutes and the gap). Whether it reflects how clubs judge
+  forwards or chance is for the case study to test, on players it was not found on.
 - The meaning of `transfer_fee` 0 vs null (free, loan, unknown) is still unverified.
 - Before publishing: register interest at statsbomb.com/resource-centre (StatsBomb asks this
   of open-data users) and add the StatsBomb logo from its Media Pack.

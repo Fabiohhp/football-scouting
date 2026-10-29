@@ -1,5 +1,6 @@
 from datetime import date
 
+from football_scouting.analysis.style import NAMES
 from football_scouting.config import PROJECT_ROOT, load_config
 
 
@@ -62,3 +63,15 @@ def test_count_profiles_put_back_what_possession_value_replaced():
     assert all("pass_completion" in ms for ms in counted.values())
     assert not {"xt", "completion_above_expected"} & {m for ms in counted.values() for m in ms}
     assert counted["CF"][4] == "passes_into_box" and counted["CM"][5] == "key_passes"
+
+
+def test_role_descriptors_are_style_descriptors_in_family_order():
+    cfg = load_config()
+    roles = cfg.roles.descriptors
+    assert list(roles) == list(cfg.profiles)
+    assert all(list(ms) == [m for m in NAMES if m in ms] for ms in roles.values())
+    assert [len(ms) for ms in roles.values()] == [9, 16, 21, 20, 19]
+    # The left foot is a side, and pass length always stands for the share of long passes.
+    assert not {"left_foot_share", "long_share"} & {m for ms in roles.values() for m in ms}
+    assert [g for g, ms in roles.items() if "inside_foot_share" in ms] == ["AMW", "CF"]
+    assert cfg.roles.axes == {"CB": 3, "FB": 3, "CM": 4, "AMW": 4, "CF": 3}
