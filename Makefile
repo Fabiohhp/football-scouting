@@ -55,7 +55,7 @@ links:  ## Link StatsBomb matches, teams and players to Transfermarkt
 database:  ## DuckDB database with one view per processed table
 	uv run python scripts/build_database.py
 
-profiles:  ## Player profiles (data/processed/profiles/; needs the database), then the views
+profiles:  ## Profiles and styles (data/processed/profiles/; needs the database), then the views
 	uv run python scripts/build_profiles.py
 
 dictionary:  ## Regenerate docs/DATA_DICTIONARY.md (fails on undocumented columns)

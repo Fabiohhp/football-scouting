@@ -13,7 +13,7 @@ make format            # ruff --fix + ruff format
 make test              # unit tests (tests marked `network` or `data` are deselected)
 make all               # data + model + dq
 make data              # download, convert, validate, coverage report (idempotent)
-make model             # build-tables, links, database, profiles, dictionary (~1.5 min)
+make model             # build-tables, links, database, profiles, dictionary (~2 min)
 make dq                # data quality tests on data/processed (pytest -m data)
 make notebooks         # re-run every notebook in place (needs `make model`)
 make verify-statsbomb  # StatsBomb coverage + size estimate (metadata only); writes inventory.csv
@@ -25,7 +25,7 @@ make coverage-report          # reports/coverage_report.md
 make build-tables             # data/processed/{statsbomb,transfermarkt}/*.parquet
 make links                    # data/processed/links/ (StatsBomb <-> Transfermarkt)
 make database                 # data/processed/scouting.duckdb (views)
-make profiles                 # data/processed/profiles/ (player profiles), then the views again
+make profiles                 # data/processed/profiles/ (profiles, styles), then the views again
 make dictionary               # docs/DATA_DICTIONARY.md (fails on undocumented columns)
 ```
 
@@ -112,8 +112,9 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     valued at the bottom), `excess_growth` (growth less an age curve), `season_minutes` and
     `career` (league, big five and Champions League minutes in the season before each horizon,
     and the league played most in), `club_ids` and `club_leagues` (the club behind a valuation's
-    club name, and each club's league by season), and `player_outcomes`, all of them for the
-    profiled players;
+    club name, and each club's league by season), `season_clubs` (the club a player played most
+    for in each season, to follow moves) and `player_outcomes`, all of them for the profiled
+    players;
   - `backtest`: judging a ranking. `pick_weights` (the top share, or a set number, of each comparison group, rows
     tied at the edge sharing the places left), `lexicographic` (a ranking by several keys),
     `pick_mean` and `pick_means` (a pick's mean outcome, several rankings at once, ranked afresh
@@ -135,7 +136,22 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     halves); style axes, `parallel_analysis` and `retained` (components above shuffled data),
     `fit_axes` (varimax-rotated principal components, `Axes.scores`) and `congruence` (the axes
     found again in random halves, `HALVES` of them). The number of axes per group is `roles.axes`
-    in the config;
+    in the config, the names of their ends `roles.names`. `build_style` chains the steps for
+    `make profiles` (the `style_*` tables, from `style_matches`, the matches a style is read
+    from), `axes_of` gives a group's `Axes` back from them, and `place` puts any sums of a
+    player's matches on the season's terms (as `profiles.place` does for the profile, with
+    `profiles.match_counts` and `profiles.towards`);
+  - `similarity`: the space players are compared in. `fit_block` (a block of numbers
+    standardised over the regulars, whitened or not, scaled to a total variance of 1),
+    `coordinates` (blocks side by side, compared by Euclidean distance), `nearest` (each player's
+    nearest players), `own_rank` (where a player's own other sample ranks among all candidates,
+    or a sample put in its place) and `listed` (how many other players' lists a candidate comes
+    in). The search's space is two blocks, neither whitened: the shrunk style descriptors and the
+    profile (notebook 06, section 1; `search_values`, `search_points`). `similar` is the search:
+    a player's nearest candidates, list by list (the regulars, the young players apart), teammates
+    left out, filtered by age, league, market value, foot (`FOOT`) and side; `style_ends` and
+    `in_common` (the style axis ends two players share) and `profile_gaps` (the profile statistics
+    a candidate is furthest above and below the player on) say how a candidate is alike;
   - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a
     number the league explains, between team-matches and for players within comparison group,
     and how much the team explains beyond chance;
@@ -150,7 +166,8 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   (`profiles` in the config; `replaced` records the three statistics possession value took
   the place of). Later analyses read the profiles from the processed tables
   (`profile_players`, `profile_values`: one row per player and statistic, as recorded,
-  adjusted, shrunk and as a percentile), not from the raw rates.
+  adjusted, shrunk and as a percentile), not from the raw rates, and the style from
+  `style_values` and `style_scores` (one row per player and descriptor, and per axis).
 
 ## Rules that protect the analysis
 

@@ -29,7 +29,9 @@ order:
    lower number is the better one.
 
 Tables are keyed by `comparison_group` and `statistic`, as the processed profile tables are
-(`build_profiles`), so that those can be passed back to the functions.
+(`build_profiles`), so that those can be passed back to the functions. `place` puts any sums of a
+player's matches (a half season, the matches at one club) on the season's terms: the group's
+elasticities and slopes, and shrinkage towards the season's group mean with the season's K.
 """
 
 from __future__ import annotations
@@ -37,6 +39,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import duckdb
+import numpy as np
 import pandas as pd
 
 from football_scouting.analysis import xpass, xt
@@ -157,6 +160,18 @@ def value_sums(
         sums = xpass.player_match_passes(passes, xpass.expected_completion(passes))
         out = out.merge(sums.rename(columns=XPASS_SUMS), on=KEYS, how="outer")
     return out.fillna(0.0)
+
+
+def match_counts(
+    con: duckdb.DuckDBPyConnection, cfg: Config, statistics: set[str] | frozenset[str]
+) -> pd.DataFrame:
+    """One row per player and pool match played: the `metrics` counts, the time with and without
+    the ball (`possession.player_possession`) and the sums behind the possession-value numbers
+    among `statistics` (`value_sums`), as recorded."""
+    counts = player_match_counts(con).merge(player_possession(con), on=KEYS, how="left")
+    worth = value_sums(con, cfg, statistics)
+    counts = counts.merge(worth, on=KEYS, how="left", validate="1:1")
+    return counts.fillna(dict.fromkeys(worth.columns.drop(KEYS), 0.0))
 
 
 def summed_columns(counts: pd.DataFrame) -> list[str]:
@@ -293,6 +308,32 @@ def shrink(values: pd.DataFrame, statistics: pd.DataFrame) -> pd.DataFrame:
     return d.drop(columns="k")
 
 
+def towards(
+    values: pd.DataFrame, minutes: pd.Series, mean: pd.Series, k: pd.Series
+) -> pd.DataFrame:
+    """`values` (rows x statistics) pulled towards `mean` with weight M / (M + K), M each row's
+    `minutes` and K each statistic's `k` (`shrink` with a given mean); a missing value takes the
+    mean."""
+    m = minutes.to_numpy()[:, None]
+    weight = np.where(values.isna(), 0.0, m / (m + k.loc[values.columns].to_numpy()))
+    return mean.loc[values.columns] + weight * (values.fillna(0.0) - mean.loc[values.columns])
+
+
+def place(sums: pd.DataFrame, group: str, statistics: pd.DataFrame) -> pd.DataFrame:
+    """The profile of `group` from any sums of a player's matches, on the season's terms.
+
+    `sums` has the `summed_columns`, counts already rescaled for their recording context
+    (`rescale`, with `profile_recording`), one row per set of matches; `statistics` is
+    `profile_statistics`. Rates and ratios on an even share of possession by the group's
+    elasticities and slopes (`adjusted_rates`), pulled towards the season's group mean with the
+    season's K (`towards`); one column per statistic of the group, in profile order.
+    """
+    s = statistics[statistics.comparison_group == group].sort_values("order")
+    adjusted = adjusted_rates(sums, pd.Series(group, index=sums.index), s)[list(s.statistic)]
+    s = s.set_index("statistic")
+    return towards(adjusted, sums.minutes, s.group_mean, s.k)
+
+
 def percentiles(values: pd.DataFrame, column: str = "shrunk") -> pd.Series:
     """Percentile of `column` within each group and statistic, 100 for the best player.
 
@@ -329,10 +370,7 @@ def build_profiles(
     group = players.comparison_group
     names = con.sql("SELECT player_id, coalesce(player_nickname, player_name) AS n FROM players")
     players["known_as"] = names.df().set_index("player_id").n.reindex(players.index)
-    counts = player_match_counts(con).merge(player_possession(con), on=KEYS, how="left")
-    worth = value_sums(con, cfg, {m for ms in profiles.values() for m in ms})
-    counts = counts.merge(worth, on=KEYS, how="left", validate="1:1")
-    counts = counts.fillna(dict.fromkeys(worth.columns.drop(KEYS), 0.0))
+    counts = match_counts(con, cfg, {m for ms in profiles.values() for m in ms})
     counts = counts[counts.player_id.isin(players.index)]
     columns = summed_columns(counts)
 

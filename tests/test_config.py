@@ -75,3 +75,5 @@ def test_role_descriptors_are_style_descriptors_in_family_order():
     assert not {"left_foot_share", "long_share"} & {m for ms in roles.values() for m in ms}
     assert [g for g, ms in roles.items() if "inside_foot_share" in ms] == ["AMW", "CF"]
     assert cfg.roles.axes == {"CB": 3, "FB": 3, "CM": 4, "AMW": 4, "CF": 3}
+    assert cfg.roles.names["CB"][0] == ("Short passer", "Long passer")
+    assert {g: len(ends) for g, ends in cfg.roles.names.items()} == cfg.roles.axes

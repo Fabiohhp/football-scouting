@@ -916,3 +916,94 @@ Grain: one row per comparison group, recording statistic and recording context. 
 | `statistic` | `VARCHAR` | Rate name. |
 | `context` | `VARCHAR` | Recording context (a league; the Premier League before and from 2015-12-28). |
 | `factor` | `DOUBLE` | Multiplier of the context's counts that brings its rate per 90 to the group's rate over every context, among the group's profiled players. |
+
+### `style_values`
+
+Each style descriptor of each player with a profile (`make profiles`, `analysis.roles.build_style`; descriptors of `analysis.style`, those of the player's group in config `roles.descriptors`), step by step: as recorded, on an even share of possession, and shrunk towards the group's mean. Read from the matches the player spent at least half of in a position of their comparison group, counts recorded differently between leagues and in the Premier League from 28 December 2015 rescaled as in the profiles. Features: 2015/16 information only.
+
+Grain: one row per player and style descriptor of their group. Rows: 22,861. File: `profiles/style_values.parquet`.
+
+| Column | Type | Description |
+|---|---|---|
+| `player_id` | `BIGINT` | StatsBomb player id. |
+| `comparison_group` | `VARCHAR` | The player's comparison group. |
+| `descriptor` | `VARCHAR` | Descriptor name (`analysis.style`): a share or a place, defined in that module's docstring. |
+| `minutes` | `DOUBLE` | Real minutes in the matches the style is read from (M in the shrinkage weight). |
+| `recorded` | `DOUBLE` | The descriptor over those matches, after the recording-context rescaling (null when its denominator is 0). |
+| `adjusted` | `DOUBLE` | `recorded` put on an even share of possession: less the group's slope x (the team's share of possession over those matches - 0.5). |
+| `group_mean` | `DOUBLE` | The comparison group's mean of `adjusted`, weighted by minutes. |
+| `weight` | `DOUBLE` | M / (M + K): the weight of the player's own `adjusted` value (0 when it is null). |
+| `shrunk` | `DOUBLE` | `group_mean` + `weight` x (`adjusted` - `group_mean`): the value the style axes are read from. |
+
+### `style_descriptors`
+
+The style descriptors of each comparison group and the numbers behind their adjustment, shrinkage and standardisation.
+
+Grain: one row per comparison group and style descriptor. Rows: 85. File: `profiles/style_descriptors.parquet`.
+
+| Column | Type | Description |
+|---|---|---|
+| `comparison_group` | `VARCHAR` | Comparison group. |
+| `descriptor` | `VARCHAR` | Descriptor name (as in `style_values`). |
+| `order` | `BIGINT` | Position among the group's descriptors (config `roles.descriptors`), from 0. |
+| `slope` | `DOUBLE` | The descriptor's change per unit of the team's share of possession, within players (least squares weighted by its denominator, a fixed effect per player, the group's players with 900+ minutes in the group's positions). |
+| `reliability` | `DOUBLE` | Split-half reliability of `adjusted` at 900 minutes within the group (players with 1,800+ minutes in the group's positions, values centred within league, mean of 50 random splits). |
+| `k` | `DOUBLE` | Minutes at which the descriptor is half signal, half noise: 900 (1 - reliability) / reliability. |
+| `group_mean` | `DOUBLE` | The group's mean of `adjusted`, weighted by minutes (the shrinkage target). |
+| `regulars_mean` | `DOUBLE` | Mean of `shrunk` over the group's regulars (900+ minutes in the group's positions), the axes' centre. |
+| `regulars_sd` | `DOUBLE` | Standard deviation (population) of `shrunk` over the group's regulars, the axes' unit. |
+
+### `style_axes`
+
+The style axes of each comparison group (config `roles.axes`): varimax-rotated principal components of the standardised shrunk descriptors of the group's regulars, numbered by the variation they hold, largest first.
+
+Grain: one row per comparison group and axis. Rows: 17. File: `profiles/style_axes.parquet`.
+
+| Column | Type | Description |
+|---|---|---|
+| `comparison_group` | `VARCHAR` | Comparison group. |
+| `axis` | `BIGINT` | Axis number, from 1. |
+| `low` | `VARCHAR` | Name of the axis's low end (config `roles.names`). |
+| `high` | `VARCHAR` | Name of the axis's high end. |
+| `variation` | `DOUBLE` | Share of the standardised descriptors' variation among the regulars the axis holds. |
+
+### `style_loadings`
+
+How each style axis is made of its group's descriptors.
+
+Grain: one row per comparison group, axis and descriptor. Rows: 296. File: `profiles/style_loadings.parquet`.
+
+| Column | Type | Description |
+|---|---|---|
+| `comparison_group` | `VARCHAR` | Comparison group. |
+| `axis` | `BIGINT` | Axis number (as in `style_axes`). |
+| `descriptor` | `VARCHAR` | Descriptor name (as in `style_values`). |
+| `loading` | `DOUBLE` | The descriptor's correlation with the axis's scores among the regulars (each axis signed so that its largest loading is positive). |
+| `weight` | `DOUBLE` | The descriptor's weight in the score: score = sum over descriptors of `weight` x (`shrunk` - `regulars_mean`) / `regulars_sd`. |
+
+### `style_scores`
+
+Each player's score on each style axis of their group: 0 at the regulars' mean, 1 at one standard deviation; players under 900 minutes in the group's positions are placed on the axes fitted on the regulars.
+
+Grain: one row per player and axis of their group. Rows: 4,631. File: `profiles/style_scores.parquet`.
+
+| Column | Type | Description |
+|---|---|---|
+| `player_id` | `BIGINT` | StatsBomb player id. |
+| `comparison_group` | `VARCHAR` | The player's comparison group. |
+| `minutes` | `DOUBLE` | Real minutes in the matches the style is read from (as in `style_values`). |
+| `axis` | `BIGINT` | Axis number (as in `style_axes`). |
+| `score` | `DOUBLE` | The player's score on the axis (from the descriptors in `style_values`.`shrunk`; a null descriptor counts as the regulars' mean). |
+
+### `style_recording`
+
+Factors applied to the counts recorded differently between leagues and in the Premier League from 28 December 2015 (config `recording`), in the matches the style is read from.
+
+Grain: one row per comparison group, recording statistic and recording context. Rows: 125. File: `profiles/style_recording.parquet`.
+
+| Column | Type | Description |
+|---|---|---|
+| `comparison_group` | `VARCHAR` | Comparison group. |
+| `statistic` | `VARCHAR` | Count name. |
+| `context` | `VARCHAR` | Recording context (a league; the Premier League before and from 2015-12-28). |
+| `factor` | `DOUBLE` | Multiplier of the context's counts that brings its rate per 90 to the group's rate over every context, among the group's profiled players in the matches the style is read from. |

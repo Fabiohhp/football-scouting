@@ -61,6 +61,7 @@ class ComparedConfig:
 class RolesConfig:
     descriptors: dict[str, tuple[str, ...]]  # comparison group code -> `analysis.style` names
     axes: dict[str, int]  # comparison group code -> style axes (`analysis.roles`)
+    names: dict[str, tuple[tuple[str, str], ...]]  # group code -> each axis's (low, high) ends
 
 
 @dataclass(frozen=True)
@@ -188,6 +189,7 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
     roles = RolesConfig(
         descriptors={g: tuple(ms) for g, ms in raw["roles"]["descriptors"].items()},
         axes=dict(raw["roles"]["axes"]),
+        names={g: tuple(tuple(e) for e in ends) for g, ends in raw["roles"]["names"].items()},
     )
     if not set(roles.descriptors) <= {g.code for g in comparison_groups} or any(
         len(set(ms)) < len(ms) for ms in roles.descriptors.values()
@@ -197,6 +199,11 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
         not 1 <= n <= len(roles.descriptors[g]) for g, n in roles.axes.items()
     ):
         raise ValueError("roles.axes: one count per group with descriptors, at most as many")
+    if set(roles.names) != set(roles.axes) or any(
+        len(ends) != roles.axes[g] or any(len(e) != 2 for e in ends)
+        for g, ends in roles.names.items()
+    ):
+        raise ValueError("roles.names: two ends for each axis of each group")
     rec = raw["recording"]
     recording = RecordingConfig(
         statistics=tuple(rec["statistics"]),

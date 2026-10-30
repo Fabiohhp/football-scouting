@@ -658,3 +658,84 @@ tables:
       statistic: Rate name.
       context: Recording context (a league; the Premier League before and from 2015-12-28).
       factor: Multiplier of the context's counts that brings its rate per 90 to the group's rate over every context, among the group's profiled players.
+
+  # ---------------------------------------------------------------- Player styles
+  profiles/style_values:
+    description: >-
+      Each style descriptor of each player with a profile (`make profiles`,
+      `analysis.roles.build_style`; descriptors of `analysis.style`, those of the player's group
+      in config `roles.descriptors`), step by step: as recorded, on an even share of possession,
+      and shrunk towards the group's mean. Read from the matches the player spent at least half
+      of in a position of their comparison group, counts recorded differently between leagues and
+      in the Premier League from 28 December 2015 rescaled as in the profiles. Features: 2015/16
+      information only.
+    grain: one row per player and style descriptor of their group
+    columns:
+      player_id: StatsBomb player id.
+      comparison_group: The player's comparison group.
+      descriptor: "Descriptor name (`analysis.style`): a share or a place, defined in that module's docstring."
+      minutes: Real minutes in the matches the style is read from (M in the shrinkage weight).
+      recorded: The descriptor over those matches, after the recording-context rescaling (null when its denominator is 0).
+      adjusted: "`recorded` put on an even share of possession: less the group's slope x (the team's share of possession over those matches - 0.5)."
+      group_mean: The comparison group's mean of `adjusted`, weighted by minutes.
+      weight: "M / (M + K): the weight of the player's own `adjusted` value (0 when it is null)."
+      shrunk: "`group_mean` + `weight` x (`adjusted` - `group_mean`): the value the style axes are read from."
+
+  profiles/style_descriptors:
+    description: The style descriptors of each comparison group and the numbers behind their adjustment, shrinkage and standardisation.
+    grain: one row per comparison group and style descriptor
+    columns:
+      comparison_group: Comparison group.
+      descriptor: Descriptor name (as in `style_values`).
+      order: Position among the group's descriptors (config `roles.descriptors`), from 0.
+      slope: "The descriptor's change per unit of the team's share of possession, within players (least squares weighted by its denominator, a fixed effect per player, the group's players with 900+ minutes in the group's positions)."
+      reliability: Split-half reliability of `adjusted` at 900 minutes within the group (players with 1,800+ minutes in the group's positions, values centred within league, mean of 50 random splits).
+      k: "Minutes at which the descriptor is half signal, half noise: 900 (1 - reliability) / reliability."
+      group_mean: The group's mean of `adjusted`, weighted by minutes (the shrinkage target).
+      regulars_mean: Mean of `shrunk` over the group's regulars (900+ minutes in the group's positions), the axes' centre.
+      regulars_sd: Standard deviation (population) of `shrunk` over the group's regulars, the axes' unit.
+
+  profiles/style_axes:
+    description: >-
+      The style axes of each comparison group (config `roles.axes`): varimax-rotated principal
+      components of the standardised shrunk descriptors of the group's regulars, numbered by the
+      variation they hold, largest first.
+    grain: one row per comparison group and axis
+    columns:
+      comparison_group: Comparison group.
+      axis: Axis number, from 1.
+      low: Name of the axis's low end (config `roles.names`).
+      high: Name of the axis's high end.
+      variation: Share of the standardised descriptors' variation among the regulars the axis holds.
+
+  profiles/style_loadings:
+    description: How each style axis is made of its group's descriptors.
+    grain: one row per comparison group, axis and descriptor
+    columns:
+      comparison_group: Comparison group.
+      axis: Axis number (as in `style_axes`).
+      descriptor: Descriptor name (as in `style_values`).
+      loading: The descriptor's correlation with the axis's scores among the regulars (each axis signed so that its largest loading is positive).
+      weight: "The descriptor's weight in the score: score = sum over descriptors of `weight` x (`shrunk` - `regulars_mean`) / `regulars_sd`."
+
+  profiles/style_scores:
+    description: >-
+      Each player's score on each style axis of their group: 0 at the regulars' mean, 1 at one
+      standard deviation; players under 900 minutes in the group's positions are placed on the
+      axes fitted on the regulars.
+    grain: one row per player and axis of their group
+    columns:
+      player_id: StatsBomb player id.
+      comparison_group: The player's comparison group.
+      minutes: Real minutes in the matches the style is read from (as in `style_values`).
+      axis: Axis number (as in `style_axes`).
+      score: The player's score on the axis (from the descriptors in `style_values`.`shrunk`; a null descriptor counts as the regulars' mean).
+
+  profiles/style_recording:
+    description: Factors applied to the counts recorded differently between leagues and in the Premier League from 28 December 2015 (config `recording`), in the matches the style is read from.
+    grain: one row per comparison group, recording statistic and recording context
+    columns:
+      comparison_group: Comparison group.
+      statistic: Count name.
+      context: Recording context (a league; the Premier League before and from 2015-12-28).
+      factor: Multiplier of the context's counts that brings its rate per 90 to the group's rate over every context, among the group's profiled players in the matches the style is read from.

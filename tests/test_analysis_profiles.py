@@ -14,6 +14,7 @@ from football_scouting.analysis.profiles import (
     recording_factors,
     rescale,
     shrink,
+    towards,
 )
 from football_scouting.config import load_config
 
@@ -138,6 +139,15 @@ def test_shrink_pulls_towards_the_minutes_weighted_mean():
     assert out.group_mean.tolist() == pytest.approx([45, 45, 45])  # (30 x 900 + 50 x 2700) / 3600
     assert out.weight.tolist() == pytest.approx([0.5, 0.75, 0])
     assert out.shrunk.tolist() == pytest.approx([37.5, 48.75, 45])
+
+
+def test_towards_pulls_towards_a_given_mean():
+    values = pd.DataFrame({"passes": [30.0, 50.0, np.nan], "shots": [1.0, 3.0, 2.0]})
+    minutes = pd.Series([900.0, 2700.0, 600.0])
+    out = towards(values, minutes, pd.Series({"shots": 2.0, "passes": 45.0}),
+                  pd.Series({"passes": 900.0, "shots": 300.0}))  # fmt: skip
+    assert out.passes.tolist() == pytest.approx([37.5, 48.75, 45])  # as `shrink` with its mean
+    assert out.shots.tolist() == pytest.approx([2 - 0.75, 2 + 0.9, 2])
 
 
 def test_percentiles_put_the_best_at_100():

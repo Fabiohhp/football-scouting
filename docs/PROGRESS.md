@@ -19,7 +19,9 @@
   back-test) and 4 (shortlists) on 2026-10-25. Role discovery: section 1 (which numbers
   describe a role) on 2026-10-27 and 2026-10-28, section 2 (roles or a continuum) on
   2026-10-28; both read again from a player's own position on 2026-10-29; sections 3 (names and
-  portraits of the style axes) and 4 (styles, the market and the back-test) on 2026-10-29.
+  portraits of the style axes) and 4 (styles, the market and the back-test) on 2026-10-29, then
+  the style as processed tables. Similarity search: section 1 (how alike) on 2026-10-29,
+  sections 2 (what similarity follows) and 3 (replacements) on 2026-10-30.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -418,11 +420,60 @@ Phase plan:
   group share; roles: shrinkage, a mixture finding separated roles numbered by height, parallel
   analysis against shuffled data, varimax at the best rotation, axis scores standardised and
   uncorrelated, congruence of clear axes).
+- The style as processed tables (`DECISIONS.md`, 2026-10-29): `make profiles` builds
+  `style_values`, `style_descriptors`, `style_axes`, `style_loadings`, `style_scores` and
+  `style_recording` (`roles.build_style`; the names of the axes' ends are `roles.names` in the
+  config), and notebook 05 checks them against its own fit. 57 data tests (new: every profiled
+  player has their group's descriptors and axes, shrunk descriptors lie between the player and
+  the group, scores are standardised and uncorrelated among the regulars with the loadings as
+  their correlations).
+
+### Phase 3: Similarity search `notebooks/06_similarity_search.ipynb` (from 2026-10-29)
+- Section 1, how alike: a distance is judged by whether it finds a player again in the other
+  half of their season (matches dealt alternately in date order; 576 players with 900 minutes or
+  more in their group's positions in each half, each half placed on the season's terms). Style
+  axes and profile together, each block of equal weight, find the player's own half first 59% of
+  the time (chance 0.9%), the profile alone 43%, the axes alone 25%. Whitening the profile block
+  (Mahalanobis) costs 6.4 points (-9.2 to -3.8), so the Euclidean distance is kept by the rule
+  fixed beforehand. The style descriptors in place of the axes reach 73% (70% to 76%), more in
+  every group, and the search uses them: style descriptors and profile, equal weight, Euclidean.
+  The axes stay to describe how two players are alike. The 22 players who changed team in
+  January are found again across their two clubs half as often as across alternating halves
+  (34% against 64% with the descriptors, 25% against 50% with the axes).
+- Section 2, what similarity follows: among a regular's five nearest regulars (1,176 players),
+  teammates come up 2.6 times as often as by chance (2.9% against 1.1%; 14% of the lists of five
+  hold one), through the descriptors (2.7 times) more than the profile (1.75); the same league
+  1.28 times, the same line 1.29 times (central midfielders 75% against 53%), the same side 1.06
+  times. Short samples drawn from the tested players' halves: top 5 92% on a full half, 90% at
+  900 minutes, 79% at 450, 67% at 270; at 450 minutes 0.88 of the top 5 at 900, so young players
+  with 450 to 899 minutes join the candidates by the rule fixed beforehand. A short sample comes
+  in more of the other players' lists of five than a full half (7.4 at 450 minutes, 9.8 at 270,
+  against 5), so young players are listed apart from the regulars.
+- Section 3, replacements: the search as a function (`similarity.similar`): two lists (1,176
+  regulars, 84 young players), teammates left out, filters by age, league, market value on 30
+  June 2016, foot (left-footed from half of the passes; 908 candidates under 30%, 300 over 70%)
+  and side; each candidate with the style axis ends shared with the player and the profile
+  statistics furthest apart. Examples: the most valuable regular of each group who changed club
+  for 2016/17 (David Luiz, Šime Vrsaljko, Paul Pogba, Memphis Depay, Gonzalo Higuaín). Their
+  nearest regulars are worth a median of €2M to €25M beside €13M to €70M; four of the six nearest
+  to Vrsaljko, a right-back, play on the left, so side is a filter. What clubs did: in 195 pairs
+  of a regular who left and a player of their group their club signed for 2016/17 (137 regulars,
+  58 clubs), the player signed sits at a mean share of 0.50 of the list (0.46 to 0.54 over 2,000
+  resamples of clubs), 8% in the nearest tenth (4% to 12%) against 10%: where chance puts them,
+  with the descriptors alone (0.49) or the profile alone (0.51), in every group.
+- New helpers: `analysis.similarity` (blocks of the space, coordinates, a player's nearest
+  players, a player's own rank, the lists a candidate comes in, the search's space and the
+  search, axis ends and profile gaps), `outcomes.season_clubs` (the club a player played most for
+  in each season), `profiles.match_counts`, `profiles.towards` and `profiles.place`,
+  `roles.style_matches` and `roles.place` (any set of a player's matches on the season's terms).
+  146 unit tests (new: shrinkage towards a given mean, blocks of total variance 1 whitened or not,
+  blocks weighing the same, a player's own rank with or without a sample in its place, nearest
+  players, the lists a candidate comes in, the search's values and space, the search's lists and
+  filters, axis ends and what two players share, profile gaps, a player's club by season).
 
 ## Next
 
-1. Similarity search and replacements (Phase 3), reading players through their profiles and
-   style axes.
+1. Team style (Phase 3).
 
 ## Open questions
 
@@ -435,8 +486,6 @@ Phase plan:
   conservatively (450-minute players fill 39% to 45% of a group's predicted top 10% where they
   are half the players), which is right on average but can bury a young player with strong
   numbers. Ranking young players also by an optimistic bound is a back-test choice.
-- Style axes are computed in notebook 05; the similarity search and the case study may need
-  them as processed tables (as the profiles are), built by the pipeline.
 - Centre-forwards who lay the ball off grew less in value than those who pass it forward
   (Spearman -0.21 three years on, short of Holm's correction over 34 correlations, steady from
   two to five years on and beside minutes and the gap). Whether it reflects how clubs judge

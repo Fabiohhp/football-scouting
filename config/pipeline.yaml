@@ -133,6 +133,8 @@ replaced:
 # while every axis is reliable (0.7 or more at 900 minutes) and found again in random halves of the
 # regulars (a mean congruence of 0.85 or more over 20,000 halves, `analysis.roles`). A Gaussian
 # mixture found no reproducible roles in any group.
+# `names`: each axis's two ends, the low score first, in axis order (decided 2026-10-29; evidence
+# in notebooks/05_role_discovery.ipynb, section 3).
 roles:
   descriptors:
     CB: [touch_width, box_share, pass_share, carry_distance, pass_length, forward_share,
@@ -153,6 +155,16 @@ roles:
          forward_share, backward_share, inside_foot_share, press_share, clearance_share,
          high_press_share, aerial_share]
   axes: {CB: 3, FB: 3, CM: 4, AMW: 4, CF: 3}
+  names:
+    CB: [[Short passer, Long passer], [Ball-carrier, Direct passer], [Central, Wide]]
+    FB: [[Dribbler, Box defender], [Holds position, Gets into the box],
+         [Short passer and presser, Long passer]]
+    CM: [[Deep pivot, Advanced midfielder], [Short passer and presser, Long passer],
+         [Ground passer, Aerial presence], [Ball-carrier, Forward passer]]
+    AMW: [[Link player, Final-third attacker], [Lay-off runner, Forward passer],
+          [Inside forward, Touchline winger], [Ball-carrier, Aerial presence]]
+    CF: [[Target man, Mobile forward], [Deep-lying forward, Penalty-box striker],
+         [Forward passer, Lay-off forward]]
 
 # Statistics recorded differently between leagues and, in the Premier League, from match week 19.
 # Players are compared on them within recording context: each league, and the Premier League

@@ -18,7 +18,8 @@ named on a valuation is not used for the level: valuations name clubs by their s
 Roma"), games by their full name ("Associazione Sportiva Roma"), and a valuation can predate a
 move. `club_ids` links the names through the players (a name goes to the club its players played
 league matches for in the same season) and `club_leagues` gives each club's league, to check
-where the players without league minutes were.
+where the players without league minutes were. `season_clubs` gives the club a player played
+most for in each season, to follow moves between clubs.
 """
 
 from __future__ import annotations
@@ -144,6 +145,23 @@ def season_minutes(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
         JOIN player_map m ON m.tm_player_id = a.player_id
         GROUP BY ALL
         ORDER BY ALL
+    """).df()
+
+
+def season_clubs(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """The club (`club_id`) each linked player (`player_id`, StatsBomb) played the most minutes
+    for in each `season`, over every competition Transfermarkt's appearances cover, with those
+    `minutes` (a tie goes to the lowest club id)."""
+    return con.execute("""
+        SELECT player_id, season, club_id, minutes FROM (
+            SELECT m.sb_player_id AS player_id, g.season, a.player_club_id AS club_id,
+                   sum(a.minutes_played) AS minutes
+            FROM tm_appearances a JOIN tm_games g USING (game_id)
+            JOIN player_map m ON m.tm_player_id = a.player_id
+            GROUP BY ALL)
+        QUALIFY row_number() OVER (
+            PARTITION BY player_id, season ORDER BY minutes DESC, club_id) = 1
+        ORDER BY player_id, season
     """).df()
 
 

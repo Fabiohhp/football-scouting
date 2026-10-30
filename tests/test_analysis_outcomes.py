@@ -12,6 +12,7 @@ from football_scouting.analysis.outcomes import (
     club_leagues,
     excess_growth,
     growth_score,
+    season_clubs,
     value_growth,
 )
 from football_scouting.config import BacktestConfig
@@ -144,4 +145,27 @@ def test_club_names_go_to_the_club_their_players_played_for():
     assert club_ids(con, min_players=4).empty
     assert club_leagues(con).to_dict("list") == {
         "club_id": [12, 12, 99, 99], "season": [2017, 2018, 2017, 2018], "league": ["IT1"] * 4,
+    }  # fmt: skip
+
+
+def test_a_players_club_in_a_season_is_the_one_they_played_most_for():
+    con = duckdb.connect()
+    tables = {
+        "player_map": pd.DataFrame({"sb_player_id": [101, 102], "tm_player_id": [1, 2]}),
+        "tm_games": pd.DataFrame({"game_id": [1, 2, 3, 4], "season": [2015, 2015, 2016, 2016]}),
+        # player 1: 90 minutes at club 12 and 120 at club 30 in 2015; player 2: a tie in 2016
+        "tm_appearances": pd.DataFrame(
+            {
+                "player_id": [1, 1, 1, 1, 2, 2],
+                "game_id": [1, 2, 2, 3, 3, 4],
+                "player_club_id": [12, 30, 30, 30, 40, 31],
+                "minutes_played": [90, 60, 60, 90, 45, 45],
+            }
+        ),
+    }
+    for name, table in tables.items():
+        con.register(name, table)
+    assert season_clubs(con).to_dict("list") == {
+        "player_id": [101, 101, 102], "season": [2015, 2016, 2016], "club_id": [30, 30, 31],
+        "minutes": [120, 90, 45],
     }  # fmt: skip

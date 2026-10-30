@@ -1,11 +1,13 @@
-"""The style sums reconcile with the event tables and the descriptors stay in range. Run with
-`make dq`."""
+"""The style sums reconcile with the event tables, the descriptors stay in range, and the
+processed style tables follow their rules. Run with `make dq`."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from football_scouting.analysis.metrics import OPEN_PLAY, TOUCH, player_match_counts
 from football_scouting.analysis.profiles import KEYS
+from football_scouting.analysis.roles import axes_of
 from football_scouting.analysis.style import (
     FAMILIES,
     SPREADS,
@@ -104,3 +106,59 @@ def test_group_share_covers_every_match_played(con, style):
     # A player's comparison group is where they played most: their own matches dominate.
     own = share[share.player_id.isin(pool.player_id)]
     assert (own.groupby("player_id").group_share.mean() > 0).all()
+
+
+@pytest.fixture(scope="module")
+def tables(con):
+    names = ("values", "descriptors", "axes", "loadings", "scores")
+    return {t: con.sql(f"SELECT * FROM style_{t}").df() for t in names}
+
+
+def test_every_profiled_player_has_their_groups_descriptors_and_axes(con, tables):
+    players = con.sql("SELECT player_id, comparison_group FROM profile_players").df()
+    order = tables["descriptors"][["comparison_group", "descriptor", "order"]]
+    values = tables["values"].merge(order, on=["comparison_group", "descriptor"], validate="m:1")
+    keys = ["player_id", "comparison_group"]
+    by_player = values.sort_values(["player_id", "order"]).groupby(keys)
+    assert sorted(by_player.groups) == sorted(players[keys].itertuples(index=False, name=None))
+    assert all(tuple(ms) == CFG.roles.descriptors[g] for (_, g), ms in by_player.descriptor)
+    axes = tables["scores"].sort_values(["player_id", "axis"])
+    by_player = axes.groupby(keys)["axis"]
+    assert by_player.ngroups == len(players)
+    assert all(list(a) == list(range(1, CFG.roles.axes[g] + 1)) for (_, g), a in by_player)
+    assert tables["axes"].groupby("comparison_group").size().to_dict() == CFG.roles.axes
+
+
+def test_style_shrunk_values_lie_between_the_player_and_the_group(tables):
+    d = tables["values"].merge(tables["descriptors"], on=["comparison_group", "descriptor"],
+                               suffixes=("", "_group"))  # fmt: skip
+    known = d[d.adjusted.notna()]
+    assert np.allclose(known.weight, known.minutes / (known.minutes + known.k))
+    low = np.minimum(known.adjusted, known.group_mean) - 1e-12
+    high = np.maximum(known.adjusted, known.group_mean) + 1e-12
+    assert known.shrunk.between(low, high).all()
+    assert np.allclose(d.group_mean, d.group_mean_group)
+
+
+def test_scores_are_standardised_on_the_regulars_and_correlate_as_loaded(tables):
+    """Among the regulars, scores have mean 0, standard deviation 1 and no correlation between
+    axes, and a descriptor's loading is its correlation with the axis; every player's score
+    follows from the weights."""
+    values, scores = tables["values"], tables["scores"]
+    for g in CFG.roles.axes:
+        axes = axes_of(tables["descriptors"], tables["loadings"], g)
+        shrunk = values[values.comparison_group == g].pivot(
+            index="player_id", columns="descriptor", values="shrunk"
+        )[axes.mean.index]
+        s = scores[scores.comparison_group == g].pivot(index="player_id", columns="axis",
+                                                       values="score")  # fmt: skip
+        assert np.allclose(axes.scores(shrunk).loc[s.index], s)
+        regulars = s.index[s.index.map(values.groupby("player_id").minutes.first())
+                           >= CFG.compared.minutes]  # fmt: skip
+        r = s.loc[regulars]
+        assert np.allclose(r.mean(), 0) and np.allclose(r.std(ddof=0), 1)
+        assert np.allclose(np.corrcoef(r.to_numpy(), rowvar=False), np.eye(r.shape[1]))
+        z = (shrunk.loc[regulars] - axes.mean) / axes.scale
+        loadings = pd.DataFrame({a: z.corrwith(r[a]) for a in r})
+        assert np.allclose(loadings, axes.loadings)
+        assert (axes.loadings.max() == axes.loadings.abs().max()).all()  # largest one positive

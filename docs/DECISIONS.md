@@ -954,7 +954,7 @@ congruence averaged over 20,000 halves (entry below).
 ## 2026-10-29: Names of the style axes (notebook 05, section 3)
 
 **Decision.**
-- Each style axis is named by its two ends, low and high (`AXIS_NAMES` in the notebook):
+- Each style axis is named by its two ends, low and high (`roles.names` in the config):
   - centre-backs: short passer ↔ long passer; ball-carrier ↔ direct passer; central ↔ wide;
   - full-backs: dribbler ↔ box defender; holds position ↔ gets into the box; short passer and
     presser ↔ long passer;
@@ -1018,3 +1018,113 @@ congruence averaged over 20,000 halves (entry below).
   have no style in common (10 of 25 at an end of an axis, about 13 by chance). Centre-forwards
   who lay the ball off grew less than those who pass it forward (-0.21, steady from two to five
   years on and beside minutes and the gap): an open question for the case study.
+
+## 2026-10-29: The style as processed tables
+
+**Decision.**
+- `make profiles` also builds every profiled player's style (`roles.build_style`), with the
+  config's descriptors, axes and names (`roles`):
+  - `style_values`: each descriptor as recorded, on an even share and shrunk;
+  - `style_descriptors`: the slopes, reliabilities and K behind them, and the regulars' mean and
+    standard deviation the axes are standardised by;
+  - `style_axes` (with the names of their ends), `style_loadings` (loadings and weights) and
+    `style_scores`;
+  - `style_recording`: the recording-context factors of the matches the style is read from.
+- Notebook 05 still fits the axes step by step, and checks that the tables hold the same scores
+  and shrunk descriptors.
+
+**Reason.**
+- The similarity search, team style and the scouting reports read players through their style
+  axes. Refitting them in each notebook would take minutes, and could drift from notebook 05.
+- The factors, slopes, K and standardisation are kept so that any set of a player's matches (a
+  half season, the matches at one club) can be placed on the same axes (`roles.place`).
+
+## 2026-10-29: How alike: the distance of the similarity search (notebook 06, section 1)
+
+**Decision.**
+- Players are compared within their comparison group by the Euclidean distance across two blocks
+  of equal weight (`analysis.similarity`):
+  - style: the shrunk style descriptors (`style_values`);
+  - profile: the twelve shrunk statistics of the group's profile (`profile_values`).
+- Each block is standardised over the group's regulars (900 minutes or more in its positions)
+  and scaled to a total variance of 1, so that its weight does not depend on its number of
+  columns. Neither block is whitened.
+- The style axes are not part of the distance; they describe how two players are alike, by the
+  names of their ends.
+
+**Reason.**
+- The test: each player's matches dealt alternately, in date order, into two halves; 576
+  players with 900 minutes or more in their group's positions in each half, each half placed on
+  the season's terms (`profiles.place`, `roles.place`). A distance is judged by how often a
+  player's other half is the nearest of every tested player's (top 1, both ways round; 0.9% by
+  chance).
+- The rule fixed beforehand chose between the axes and the profile with the profile block
+  whitened (a Mahalanobis distance) or not: whitened, the top 1 falls by 6.4 points (-9.2 to
+  -3.8, 2,000 resamples of players within group), so neither block is whitened. Whitening gives
+  the profile's small directions, mostly noise over half a season, as much weight as its main
+  ones.
+- The descriptors in place of the axes, a reference in that rule, find the player again 73% of
+  the time (70% to 76%) against 59% (56% to 62%), more in every group (centre-backs 58% against
+  43%, full-backs 70% against 54%, central midfielders 79% against 64%, attacking midfielders
+  and wingers 88% against 75%, centre-forwards 78% against 71%), and across clubs for the 22
+  players who changed team in January (34% against 25%). The three or four axes keep what a
+  group's players share; what they leave of the descriptors is less shared but as stable.
+- Each block alone does worse: the profile 43%, the axes 25%.
+
+## 2026-10-30: What similarity follows (notebook 06, section 2)
+
+**Decision.**
+- The search's distance stays as chosen in section 1: teammates, league, line and side are not
+  taken out of it. The replacements show each candidate's team and league; side and foot are
+  filters.
+- Candidates are the group's regulars (900 minutes or more in its positions) and, by a rule fixed
+  beforehand, young players (under 23 on 30 June 2016) with 450 to 899 minutes in the group's
+  positions. The young players are shown in a list of their own beside the regulars', each with
+  their minutes.
+
+**Reason.**
+- Among a regular's five nearest regulars, teammates come up 2.6 times as often as by chance
+  (2.9% against 1.1%; 2.2 to 3.2 over 2,000 resamples of whole teams), through the descriptors
+  (2.7 times) more than the profile (1.75): a team's way of playing shows in its players' style.
+  Taking the team out would also take out the system a club may want to find again, and 86% of
+  the lists of five hold no teammate. The same league comes up 1.28 times as often as by chance,
+  the same line 1.29 times (central midfielders 75% against 53%), the same side 1.06 times: a
+  style does not say which side a player plays on.
+- The rule: from the tested players' halves (section 1), matches drawn until they reach 270, 450,
+  675 or 900 minutes in the group's positions (20 draws, each half in turn). The top 5, both ways
+  round, is 92% on a full half, 90% at 900 minutes, 79% at 450 and 67% at 270; at 450 minutes it
+  is 0.88 of what it is at 900 (0.87 to 0.89), above the half the rule asks for.
+- A list of their own: shrunk towards the group's mean, a short sample comes in more of the other
+  players' lists of five than a full half does (7.4 at 450 minutes, 9.8 at 270, against 5).
+  Mixed with the regulars, young players would take about half as many places again as their
+  style warrants.
+
+## 2026-10-30: The search and what it explains (notebook 06, section 3)
+
+**Decision.**
+- The search (`similarity.similar`) lists a player's nearest candidates by the distance of section
+  1, the regulars and the young players in lists of their own. The player's teammates (anyone who
+  played for one of their teams in 2015/16) are left out unless asked for.
+- Filters: age, league, market value on 30 June 2016 (the back-test's market view), foot and side.
+  A player is left-footed when half or more of their passes played with either foot in their
+  group's positions are with the left; their side is that of the position they spent most time in
+  among their group's positions (none in the centre).
+- Each candidate comes with the ends of the style axes both players stand at (the bottom or top
+  third of the group's regulars on the axis), by name, and the profile statistics the candidate is
+  furthest above and below the player on, in percentile points within the group.
+- Examples, by a rule fixed beforehand: in each group, the regular with the highest market value
+  on 30 June 2016 who changed club for 2016/17 (the club played the most minutes for in
+  Transfermarkt's appearances), with a budget of half their value.
+
+**Reason.**
+- A club looks for a replacement outside its squad; teammates also come up more often than chance
+  (section 2).
+- The foot's share is bimodal: of the 1,260 candidates, 908 play under 30% of their passes with
+  the left foot and 300 over 70%, 52 in between, so a cut at half sorts almost every player.
+- Side has to be a filter: the style is read the same way from both flanks (notebook 05), and the
+  nearest regulars to a right-back include left-backs (four of the six nearest to Šime Vrsaljko).
+- The axes name how two players are alike in a few words (notebook 05); the descriptors behind
+  the distance are too many to read. Percentiles put the profile's statistics on one scale.
+- The rule for the examples keeps the choice of players from the results. A budget of half the
+  player's value leaves out none to two of the five nearest regulars: the nearest are worth far
+  less than the players who left (a median of €2M to €25M beside €13M to €70M).
