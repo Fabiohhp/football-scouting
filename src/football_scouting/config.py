@@ -65,6 +65,13 @@ class RolesConfig:
 
 
 @dataclass(frozen=True)
+class TeamStyleConfig:
+    numbers: tuple[str, ...]  # `analysis.teams` numbers a team's style is read from
+    axes: int  # team style axes (`analysis.roles.fit_axes`)
+    names: tuple[tuple[str, str], ...]  # each axis's (low, high) ends
+
+
+@dataclass(frozen=True)
 class RecordingChange:
     competition_id: int
     since: date  # first match date recorded the new way
@@ -131,6 +138,7 @@ class Config:
     profiles: dict[str, tuple[str, ...]]  # comparison group code -> statistics
     replaced: dict[str, dict[str, str]]  # group -> {possession-value number: statistic replaced}
     roles: RolesConfig
+    team_style: TeamStyleConfig
     recording: RecordingConfig
     xt: XtConfig
     backtest: BacktestConfig
@@ -204,6 +212,18 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
         for g, ends in roles.names.items()
     ):
         raise ValueError("roles.names: two ends for each axis of each group")
+    ts = raw["team_style"]
+    team_style = TeamStyleConfig(
+        numbers=tuple(ts["numbers"]),
+        axes=int(ts["axes"]),
+        names=tuple(tuple(e) for e in ts["names"]),
+    )
+    if len(set(team_style.numbers)) < len(team_style.numbers) or not (
+        1 <= team_style.axes <= len(team_style.numbers)
+    ):
+        raise ValueError("team_style: numbers named once, at most as many axes as numbers")
+    if len(team_style.names) != team_style.axes or any(len(e) != 2 for e in team_style.names):
+        raise ValueError("team_style.names: two ends for each axis")
     rec = raw["recording"]
     recording = RecordingConfig(
         statistics=tuple(rec["statistics"]),
@@ -254,6 +274,7 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
         profiles=profiles,
         replaced=replaced,
         roles=roles,
+        team_style=team_style,
         recording=recording,
         xt=xt,
         backtest=backtest,

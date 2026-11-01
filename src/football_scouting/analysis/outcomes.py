@@ -20,6 +20,10 @@ move. `club_ids` links the names through the players (a name goes to the club it
 league matches for in the same season) and `club_leagues` gives each club's league, to check
 where the players without league minutes were. `season_clubs` gives the club a player played
 most for in each season, to follow moves between clubs.
+
+Signings (`first_half_clubs`, `league_share`, `coaches`): the club a player was at in the first
+half of a season, the share of a club's league minutes a player played in a season, and whether a
+club changed coach between two seasons.
 """
 
 from __future__ import annotations
@@ -163,6 +167,89 @@ def season_clubs(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
             PARTITION BY player_id, season ORDER BY minutes DESC, club_id) = 1
         ORDER BY player_id, season
     """).df()
+
+
+def first_half_clubs(con: duckdb.DuckDBPyConnection, season: int) -> pd.DataFrame:
+    """The club (`club_id`) each linked player (`player_id`, StatsBomb) was at in the first half
+    of `season` (July to December), with its `source`.
+
+    "appearances": the club they played the most minutes for in that half, over every competition
+    Transfermarkt's appearances cover (a tie goes to the lowest club id). "transfer": for a player
+    without appearances in it, the club their last transfer from May to the end of August went
+    to. Transfers are on record for few players (`docs/DEVELOPMENT.md`): a player who joined a
+    club and did not play for it, with no record, is missed.
+    """
+    played = con.execute(f"""
+        SELECT player_id, club_id FROM (
+            SELECT m.sb_player_id AS player_id, a.player_club_id AS club_id,
+                   sum(a.minutes_played) AS minutes
+            FROM tm_appearances a JOIN player_map m ON m.tm_player_id = a.player_id
+            WHERE a.date BETWEEN DATE '{season}-07-01' AND DATE '{season}-12-31'
+            GROUP BY ALL)
+        QUALIFY row_number() OVER (PARTITION BY player_id ORDER BY minutes DESC, club_id) = 1
+    """).df()
+    moved = con.execute(f"""
+        SELECT m.sb_player_id AS player_id, t.to_club_id AS club_id
+        FROM tm_transfers t JOIN player_map m ON m.tm_player_id = t.player_id
+        WHERE t.transfer_date BETWEEN DATE '{season}-05-01' AND DATE '{season}-08-31'
+        QUALIFY row_number() OVER (
+            PARTITION BY m.sb_player_id ORDER BY t.transfer_date DESC, t.to_club_id) = 1
+    """).df()
+    moved = moved[~moved.player_id.isin(played.player_id)]
+    out = pd.concat(
+        [played.assign(source="appearances"), moved.assign(source="transfer")], ignore_index=True
+    )
+    return out.sort_values("player_id", ignore_index=True)
+
+
+def league_share(con: duckdb.DuckDBPyConnection, season: int, pairs: pd.DataFrame) -> pd.Series:
+    """For each row of `pairs` (`player_id`, StatsBomb, and `club_id`), the share of the club's
+    league minutes in `season` the player played for it: their league minutes over the club's
+    league matches times 90; 0 if they played none, missing for a club outside the leagues
+    Transfermarkt's games cover."""
+    played = con.execute(f"""
+        SELECT m.sb_player_id AS player_id, a.player_club_id AS club_id,
+               sum(a.minutes_played) AS minutes
+        FROM tm_appearances a JOIN tm_games g USING (game_id)
+        JOIN tm_competitions c ON c.competition_id = g.competition_id
+        JOIN player_map m ON m.tm_player_id = a.player_id
+        WHERE g.season = {season} AND c.type = 'domestic_league'
+        GROUP BY ALL
+    """).df()
+    matches = con.execute(f"""
+        SELECT club_id, count(*) AS matches FROM (
+            SELECT home_club_id AS club_id, competition_id FROM tm_games WHERE season = {season}
+            UNION ALL
+            SELECT away_club_id, competition_id FROM tm_games WHERE season = {season})
+        JOIN tm_competitions USING (competition_id)
+        WHERE type = 'domestic_league'
+        GROUP BY club_id
+    """).df()
+    out = pairs[["player_id", "club_id"]].merge(played, how="left").merge(matches, how="left")
+    share = out.minutes.fillna(0) / (90 * out.matches)
+    return pd.Series(share.to_numpy(), index=pairs.index, name="share")
+
+
+def coaches(con: duckdb.DuckDBPyConnection, season: int) -> pd.DataFrame:
+    """Each club's coach (`club_id` index) in its last league match of the season before `season`
+    (`before`) and in its first of `season` (`after`), as named on Transfermarkt's games."""
+    query = f"""
+        WITH sides AS (
+            SELECT season, date, home_club_id AS club_id, home_club_manager_name AS coach,
+                   competition_id
+            FROM tm_games
+            UNION ALL
+            SELECT season, date, away_club_id, away_club_manager_name, competition_id
+            FROM tm_games)
+        SELECT club_id,
+               arg_max(coach, date) FILTER (WHERE season = {season - 1}) AS before,
+               arg_min(coach, date) FILTER (WHERE season = {season}) AS after
+        FROM sides JOIN tm_competitions USING (competition_id)
+        WHERE type = 'domestic_league' AND season IN ({season - 1}, {season})
+        GROUP BY club_id
+        ORDER BY club_id
+    """
+    return con.execute(query).df().set_index("club_id")
 
 
 def career(growth: pd.DataFrame, minutes: pd.DataFrame, bt: BacktestConfig) -> pd.DataFrame:

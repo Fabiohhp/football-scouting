@@ -21,7 +21,9 @@
   2026-10-28; both read again from a player's own position on 2026-10-29; sections 3 (names and
   portraits of the style axes) and 4 (styles, the market and the back-test) on 2026-10-29, then
   the style as processed tables. Similarity search: section 1 (how alike) on 2026-10-29,
-  sections 2 (what similarity follows) and 3 (replacements) on 2026-10-30.
+  sections 2 (what similarity follows) and 3 (replacements) on 2026-10-30. Team style: sections 1
+  (how a team plays), 2 (team style axes) and 3 (players within teams) on 2026-10-30, sections 4
+  (fit) and 5 (against which opponents, an addendum) on 2026-10-31.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -460,7 +462,11 @@ Phase plan:
   of a regular who left and a player of their group their club signed for 2016/17 (137 regulars,
   58 clubs), the player signed sits at a mean share of 0.50 of the list (0.46 to 0.54 over 2,000
   resamples of clubs), 8% in the nearest tenth (4% to 12%) against 10%: where chance puts them,
-  with the descriptors alone (0.49) or the profile alone (0.51), in every group.
+  with the descriptors alone (0.49) or the profile alone (0.51), in every group. Nor by position:
+  the same line 0.98 times as often as by chance (0.83 to 1.14), the same side 0.94 times
+  (full-backs 51% against 50%). By market value the players signed come early (a mean share of
+  0.37, 0.33 to 0.41; 16% in the nearest tenth): the pairs follow the club's price level more
+  than the player who left, so they cannot tell whether clubs replace a player by style.
 - New helpers: `analysis.similarity` (blocks of the space, coordinates, a player's nearest
   players, a player's own rank, the lists a candidate comes in, the search's space and the
   search, axis ends and profile gaps), `outcomes.season_clubs` (the club a player played most for
@@ -471,17 +477,81 @@ Phase plan:
   players, the lists a candidate comes in, the search's values and space, the search's lists and
   filters, axis ends and what two players share, profile gaps, a player's club by season).
 
+### Phase 3: Team style `notebooks/07_team_style.ipynb` (from 2026-10-30)
+- Section 1, how a team plays: fourteen numbers for each of the 80 teams (PPDA, the height of
+  defensive actions, final-third pressures and counterpressures per pressure, possession, field
+  tilt, passes per possession, tempo, yards gained per completed pass, long balls from the back
+  and from goal kicks, wide entries, crosses, pass ease), with tackles, interceptions, fouls,
+  clearances and pressures rescaled within recording context. As recorded, Premier League PPDA
+  goes from 15.8 before match week 19 to 12.7 after; on one scale 12.9 and 12.4. Every number is
+  reliable over a season (split-half, stepped up: 0.81 to 0.97); the league explains 0.00 to 0.19
+  of each. By the rule fixed beforehand (reliability 0.7 or more; of two at Spearman 0.8 or more,
+  the more reliable), ten are kept: tempo, field tilt, passes per possession and possession go,
+  pass ease standing for the possession game. Most follow strength (points per match: possession
+  +0.63, the height of defensive actions +0.63, PPDA -0.48); wide entries least (-0.30).
+- Section 2, team style axes: by the rule of notebook 05, two varimax-rotated axes of the ten
+  numbers, 68% of their variation: direct to combination play (pass ease and counterpressing
+  against yards per pass, long balls, crosses and wide entries) and deep block to high press (the
+  height of defensive actions, final-third pressing, PPDA). Reliable over a season (0.95 and
+  0.85) and found again in half the teams (congruence 0.98); the second eigenvalue is on the line
+  of parallel analysis (1.525 against 1.522 over 200 shuffles, 1.524 over 10,000). Both follow
+  strength (Spearman with points +0.44 and +0.52); Leicester City are the only direct team among
+  the twelve with the most points. Pass networks of four teams, in their most used formation.
+  The numbers, the number of axes and the names of their ends are `team_style` in the config.
+- Section 3, players within teams (1,106 regulars who played for one team all season, the team's
+  scores without the player's own actions): on an even share of possession the team explains a
+  median 0.04 (central midfielders) to 0.27 (full-backs) of a style descriptor beyond chance, the
+  two team axes 0.01 to 0.05 of it (14% to 63% of the team's part). What follows the team is how
+  the ball is moved: at direct teams longer and higher passes, more aerial duels and crosses
+  (correlations to -0.53). The press shows only as recorded (the height of defensive actions +0.34
+  to +0.40); the even-share adjustment takes it out, possession going with the press (+0.67). The
+  22 players who changed team in January changed style as the team axes predict: slope 1.00
+  (0.46 to 1.44) over descriptors and 1.02 (0.47 to 1.69) over style axes, against 0.45 and 0.61
+  for shuffled team changes.
+- Section 4, fit (204 profiled players who changed club for 2016/17, to 64 clubs still in their
+  league): a club's style in a position read from all its players of the group together, a
+  player's fit as the share of the other clubs further from them than the new club, after the
+  change the team axes predict. One-team regulars fit their own club without them at a mean 0.63
+  (0.5 an average club); the signings fit their new club at 0.50 (0.46 to 0.55). Fit and the share
+  of the new club's league minutes in 2016/17, with value against the club's regulars, age,
+  minutes and group: +0.08 (-0.04 to +0.19) over all signings; +0.24 (0.10 to 0.39; 0.3% of
+  10,000 shuffles of the new clubs) at the 37 of 64 clubs that kept their coach, -0.12 (-0.29 to
+  +0.03) at the others, a gap of 0.36 (0.15 to 0.58). Steady without the predicted change, as
+  recorded and with the step in team strength as a control (+0.20 to +0.24 with the same coach).
+  The coach split was added during the analysis and is reported beside the result over all
+  signings, to be tested again on another season.
+- Section 5, against which opponents (an addendum; the 764 profiled players with 1,800 minutes or
+  more): a player's response to the opponent's style is a profile statistic against the upper
+  half of their team's opponents on a team style axis or pass ease less against the lower half,
+  the opponent's style read without its matches against the player's team. Over 180 responses the
+  split-half reliability over a season is a median -0.05 to +0.05 by group, the highest 0.32
+  (attacking midfielders' and wingers' tackles against a high press), 13 above chance where 9
+  would be by chance; the same halves give the players' levels 0.81 to 0.86. The opponent moves
+  every player's numbers alike (82 of 180 mean responses clear of 0; centre-backs about a standard
+  deviation more aerial duels and clearances against direct teams), not some players' more: no
+  line-up can be picked by a player's own response with one season of data.
+- New helpers: `analysis.teams` (each player's own counts per match and the team-match sums built
+  from them with the opponent's, a team without a player, the team numbers, recording factors and
+  rescaling for teams, split-half reliability across teams of the numbers or of any function of
+  them, pass networks between the positions of a team's most used formation, a player's fit to a
+  club as a rank among the clubs); in `analysis.outcomes`, a player's club in the first half of a
+  season, their share of a club's league minutes and each club's coach across two seasons. 156
+  unit tests (new: the team numbers, rescaling that keeps a context's heights, reliability of
+  stable differences, position codes, a team without a player's own counts, the team style in the
+  config, fit as a rank, first-half clubs, league shares, coaches) and 66 data tests (new: both
+  teams of every pool match, the opponent's counts, team counts that add up the players', player
+  rows in their team's matches, a team without all its players, every team's numbers in range, a
+  pass network's eleven positions, one first-half club per player, coaches across seasons).
+
 ## Next
 
-1. Team style (Phase 3).
+1. The recruitment case study (notebook 08), the last analysis of Phase 3: a club replacing a
+   starter in the summer of 2016 on a budget, from a long list to a shortlist to a
+   recommendation, with one-page scouting reports (HTML) for the shortlist; it draws on the
+   profiles, the back-test, the similarity search and fit to the club's style.
 
 ## Open questions
 
-- Team style (Phase 3): whether a line-up can be fitted to the opponent from one season, for
-  instance a midfielder who intercepts more against teams that risk their passes. A team's risk
-  can be read from the ease of its passes (mean expected completion, notebook 03); whether a
-  player's defensive counts rise against riskier opponents more than other players' would be
-  measured within players and recording context, and checked for reliability.
 - How the back-test treats short samples: shrunk values rank players with few minutes
   conservatively (450-minute players fill 39% to 45% of a group's predicted top 10% where they
   are half the players), which is right on average but can bury a young player with strong
@@ -490,6 +560,9 @@ Phase plan:
   (Spearman -0.21 three years on, short of Holm's correction over 34 correlations, steady from
   two to five years on and beside minutes and the gap). Whether it reflects how clubs judge
   forwards or chance is for the case study to test, on players it was not found on.
+- Fit and minutes: signings played more where they fitted only at clubs that kept their coach
+  (notebook 07, section 4), a split added during the analysis. Testing it on another season's
+  signings needs event data beyond 2015/16.
 - The meaning of `transfer_fee` 0 vs null (free, loan, unknown) is still unverified.
 - Before publishing: register interest at statsbomb.com/resource-centre (StatsBomb asks this
   of open-data users) and add the StatsBomb logo from its Media Pack.

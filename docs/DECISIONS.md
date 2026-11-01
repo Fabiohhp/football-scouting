@@ -1128,3 +1128,166 @@ congruence averaged over 20,000 halves (entry below).
 - The rule for the examples keeps the choice of players from the results. A budget of half the
   player's value leaves out none to two of the five nearest regulars: the nearest are worth far
   less than the players who left (a median of €2M to €25M beside €13M to €70M).
+
+## 2026-10-30: How a team plays: the team numbers (notebook 07, section 1)
+
+**Decision.**
+- A team's play is read through ten numbers over its league season (`analysis.teams`): PPDA, the
+  height of defensive actions, final-third pressures and counterpressures per pressure, yards
+  gained per completed pass, long passes from the own third, long goal kicks (40 yards or more),
+  wide entries into the final third, crosses per final-third pass and pass ease (the mean expected
+  completion of its open-play passes).
+- Tackles, interceptions, fouls, clearances and pressures are rescaled within recording context
+  (each league, and the Premier League before and from match week 19), the location sums of their
+  events following them, so that each context keeps the heights of its actions.
+- The numbers are not adjusted for a team's strength.
+
+**Reason.**
+- Fourteen candidates were judged by a rule fixed beforehand: a split-half reliability over a
+  season of 0.7 or more (random halves of each team's matches, centred within the league, 200
+  draws, stepped up by Spearman-Brown), and of two numbers at a Spearman correlation of 0.8 or
+  more across the 80 teams, the more reliable kept. All fourteen are reliable (0.81 to 0.97); the
+  rule drops tempo (passes per possession, 0.93), field tilt (possession, 0.89), passes per
+  possession (pass ease, 0.89) and possession (pass ease, 0.84). Pass ease stands for the
+  possession game: the teams that keep the ball play the safer passes.
+- As recorded, Premier League PPDA goes from 15.8 before match week 19 to 12.7 after it, with
+  interceptions recorded about three times as often; on one scale, 12.9 and 12.4. La Liga goes
+  from 11.6 to 12.7.
+- Goal kicks are bimodal: 21% under 40 yards (median 24), 79% at 40 or more (median 65), 4%
+  between 35 and 45.
+- Most numbers follow points per match (possession +0.63, the height of defensive actions +0.63,
+  PPDA -0.48), but a signing plays in the team's style whatever its cause, so the style is kept as
+  it is and its correlation with strength is shown beside it.
+
+## 2026-10-30: Team style axes (notebook 07, section 2)
+
+**Decision.**
+- Teams are read on two style axes: varimax-rotated principal components of the ten team numbers,
+  standardised across the 80 teams (`team_style` in the config). Their ends: 1. Direct to
+  Combination play, 2. Deep block to High press, named from the numbers that load most on each
+  axis and the teams at each end.
+- The second axis is kept although its eigenvalue sits on the line of shuffled data.
+
+**Reason.**
+- The rule of notebook 05, fixed before any axis was read: start from the components above the
+  95th percentile of 200 shuffles of the numbers (parallel analysis), and drop the last axis while
+  any has a split-half reliability under 0.7 over a season (random halves of each team's matches,
+  centred within the league, 200 draws) or a mean Tucker congruence under 0.85 with the axes
+  fitted on random halves of the teams (20,000 halves). Two components stand above chance; both
+  axes are reliable (0.95 and 0.85) and found again in half the teams (0.981 and 0.978); together
+  they hold 68% of the variation.
+- The second eigenvalue, 1.525, is on the line: 1.522 for shuffled data over 200 shuffles, 1.524
+  over 10,000. It is kept because it is reliable and reproducible and reads clearly, and because
+  after a first component as strong as this one (5.3) parallel analysis is conservative for the
+  next.
+- Axis 1: pass ease (+0.88) and counterpressing (+0.58) against yards gained per pass (-0.77),
+  long balls from the back (-0.76), crosses (-0.74), long goal kicks (-0.59) and wide entries
+  (-0.55); Eibar, Caen and Frosinone at one end, Paris Saint-Germain, Empoli and Nice at the
+  other. Axis 2: the height of defensive actions (+0.88), final-third pressures (+0.87) and
+  counterpressing (+0.68) against PPDA (-0.82); Angers, Aston Villa and Troyes at one end, Lyon,
+  Barcelona and Napoli at the other.
+- The scores follow points per match (Spearman +0.44 and +0.52) and are not adjusted for strength,
+  as the numbers are not (section 1).
+
+## 2026-10-30: Players within teams (notebook 07, section 3)
+
+**Decision.**
+- When a player's style is set against their team's, the team's scores on the team style axes are
+  computed without the player's own actions (`teams.player_match_sums` and `teams.without`).
+- A player's style at a new team is predicted from the team style axes: each descriptor and style
+  axis moves by its slopes on the team's two scores, fitted on the regulars who played for one
+  team all season, times the change in the team's scores. Section 4 reads a signing's style at
+  the new club this way.
+- The team's part is read on descriptors not shrunk (`recorded` and `adjusted` in
+  `style_values`), both as recorded and on an even share of possession.
+
+**Reason.**
+- A regular plays a median 3% to 7% of their team's open-play passes, and centre-backs 9% of its
+  long balls from the back: left in, the player's own style would be credited to the team. Taken
+  out, the scores change little (correlations of 0.99 and 0.97 with the team's own), so the
+  correction is cheap and the results do not hang on it.
+- The 22 players who changed team in January (450 minutes or more at each) changed style as the
+  slopes predict: a slope of 1.00 (0.46 to 1.44 over 2,000 resamples of the players) of the
+  change observed on the change predicted over their descriptors and 1.02 (0.47 to 1.69) over
+  their style axes, against 0.45 and 0.61 for the 95th percentile of 10,000 shuffles of the team
+  changes; leaving any one player out keeps it between 0.88 and 1.17. A slope of 0 would have
+  meant that the link between a team's style and its players' is all in whom it picks.
+- Shrinkage pulls a player towards the group's mean by their minutes, not their team, so it would
+  understate how far teams set their players apart. On an even share the team explains a median
+  0.04 to 0.27 of a descriptor beyond chance and the team axes 0.01 to 0.05 (14% to 63% of the
+  team's part); as recorded, 0.06 to 0.26 and 0.03 to 0.10.
+- On an even share no descriptor follows the deep block to high press axis by more than 0.22; as
+  recorded the height of defensive actions follows it (+0.34 to +0.40 outside the centre-backs and
+  centre-forwards). Possession goes with the press across the teams (Spearman +0.67), so the even
+  share also takes out the height a team's press gives its players. The search keeps the even
+  share, which compares players whatever their team's possession; section 4 measures fit both
+  ways.
+
+## 2026-10-31: Fit to a club's style (notebook 07, section 4)
+
+**Decision.**
+- A club's style in a position is read from all its players of the comparison group together:
+  their 2015/16 matches in the group's positions summed and read on the season's terms (the style
+  descriptors on an even share of possession, pulled towards the group's mean), with the player
+  being measured left out.
+- A player's fit to a club is a rank (`teams.fit`): the share of the other clubs, all but the old
+  and the new, further from the player than the new club, in the search's descriptor block
+  (notebook 06), after the change the team style axes predict (section 3).
+- A signing's club for 2016/17 is the club they played most minutes for from July to December in
+  Transfermarkt's appearances, or else the club their last summer transfer went to
+  (`outcomes.first_half_clubs`); the outcome is their share of that club's league minutes
+  (`outcomes.league_share`).
+- Fit's effect on minutes is reported over all signings and split by whether the club kept its
+  coach from the last league match of 2015/16 to the first of 2016/17 (`outcomes.coaches`). The
+  split is named in the notebook as added during the analysis.
+
+**Reason.**
+- A rank and not the distance itself: a player near the group's mean is near every club, so the
+  distance mixes how typical a player is with how well they fit. The distance to the nearest
+  player of the club was set aside: a club with more players in the position would look like a
+  better fit, and more players in the position also means more competition for minutes.
+- The measure tells a club's style apart: the 1,106 regulars who played for one team all season
+  fit their own club, without them, at a mean 0.63 (0.56 for central midfielders to 0.68 for
+  full-backs), against 0.5 for an average club. The 204 signings fit their new club at a mean 0.50
+  (0.46 to 0.55 over 2,000 resamples of the clubs): clubs did not sign for fit.
+- Signings: appearances name 200 of the 204 clubs; summer transfers the other 4 (Transfermarkt's
+  transfers are survivorship-biased, so they are the fallback). The club named on a valuation was
+  tried as a further fallback and added nobody. Adem Ljajić and Iago Falqué are left out: their
+  new club, Torino, played no attacking midfielder or winger in 2015/16.
+- The coach: a club's 2015/16 style is its coach's as much as its players', and Transfermarkt's
+  games name the coach of each match. With value against the club's regulars, age, minutes and
+  group held equal, the slope of the share of minutes on fit is +0.08 over all signings (−0.04 to
+  +0.19, within chance: 12% of 10,000 shuffles of the new clubs within group at or above it);
+  +0.24 (0.10 to 0.39; 0.3% of shuffles) at the 37 of 64 clubs that kept their coach and −0.12
+  (−0.29 to +0.03) at the others, a gap of 0.36 (0.15 to 0.58; 0.2% of shuffles). With the same
+  coach the slope stays between +0.20 and +0.24 without the predicted change, as recorded, and with
+  the step in team strength as a further control. As the split was not set out beforehand, the
+  result over all signings is reported beside it, and the split is the result to test again on
+  another season.
+
+## 2026-10-31: Line-ups against the opponent's style (notebook 07, section 5)
+
+**Decision.**
+- A player's response to the opponent's style is read within the player: a profile statistic from
+  their matches against the upper half of their team's 19 opponents on a team style axis or on
+  pass ease, less the same against the lower half (the median opponent left out), on the profile's
+  terms and not shrunk. The opponent's style is read from its matches against the other teams.
+- Players are not picked by their response to an opponent: no response is reliable enough over a
+  season. What the opponent does to every player of a group is reported beside it.
+
+**Reason.**
+- Over 180 responses (the twelve profile statistics of five groups, against three sides of the
+  opponent's style) and the 764 profiled players with 1,800 minutes or more, the split-half
+  reliability over a season (200 draws, stepped up) is a median −0.05 to +0.05 by group. The
+  highest, attacking midfielders' and wingers' tackles against a high press, is 0.32, which would
+  take about five seasons to reach 0.7, the bar of the team numbers and the style axes. Thirteen
+  responses are above the 95th percentile of 200 shuffles of the opponents' halves, where about
+  nine would be by chance. The same halves give the players' levels a median reliability of 0.81
+  to 0.86, so the halves hold enough matches to tell players apart.
+- A team's shared answer to an opponent counts as each of its players', so these reliabilities
+  are an upper bound for a player's own.
+- Halves of the opponents rather than a slope: every profile statistic, ratios included, is read
+  from summed matches by the profile's own functions (`profiles.place`), and each player meets
+  nine opponents on each side (14 to 16 matches, the median by group).
+- Leaving out the opponent's two matches against the player's team changes its style little
+  (correlations of 0.995 to 0.999 with the season's) and takes the player's own team out of it.

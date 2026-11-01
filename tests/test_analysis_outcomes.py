@@ -10,8 +10,11 @@ from football_scouting.analysis.outcomes import (
     career,
     club_ids,
     club_leagues,
+    coaches,
     excess_growth,
+    first_half_clubs,
     growth_score,
+    league_share,
     season_clubs,
     value_growth,
 )
@@ -168,4 +171,96 @@ def test_a_players_club_in_a_season_is_the_one_they_played_most_for():
     assert season_clubs(con).to_dict("list") == {
         "player_id": [101, 101, 102], "season": [2015, 2016, 2016], "club_id": [30, 30, 31],
         "minutes": [120, 90, 45],
+    }  # fmt: skip
+
+
+def test_a_players_first_half_club_comes_from_appearances_then_transfers():
+    con = duckdb.connect()
+    tables = {
+        "player_map": pd.DataFrame({"sb_player_id": [101, 102, 103], "tm_player_id": [1, 2, 3]}),
+        # player 1: more minutes at club 30 by December, club 12 from January
+        "tm_appearances": pd.DataFrame(
+            {
+                "player_id": [1, 1, 1, 1],
+                "player_club_id": [30, 30, 12, 12],
+                "date": pd.to_datetime(["2016-08-20", "2016-11-02", "2016-09-01", "2017-02-01"]),
+                "minutes_played": [90, 90, 120, 90],
+            }
+        ),
+        # player 1's transfer is ignored; player 2 went out on loan after a loan's end; player 3
+        # moved in January
+        "tm_transfers": pd.DataFrame(
+            {
+                "player_id": [1, 2, 2, 3],
+                "transfer_date": pd.to_datetime(
+                    ["2016-07-01", "2016-06-30", "2016-08-12", "2017-01-15"]
+                ),
+                "to_club_id": [77, 40, 41, 50],
+            }
+        ),
+    }
+    for name, table in tables.items():
+        con.register(name, table)
+    assert first_half_clubs(con, 2016).to_dict("list") == {
+        "player_id": [101, 102], "club_id": [30, 41], "source": ["appearances", "transfer"],
+    }  # fmt: skip
+
+
+def test_league_share_is_of_the_clubs_league_minutes_with_zero_for_none():
+    con = duckdb.connect()
+    tables = {
+        "player_map": pd.DataFrame({"sb_player_id": [101], "tm_player_id": [1]}),
+        "tm_competitions": pd.DataFrame(
+            {"competition_id": ["IT1", "CIT"], "type": ["domestic_league", "domestic_cup"]}
+        ),
+        "tm_games": pd.DataFrame(
+            {
+                "game_id": [1, 2, 3, 4],
+                "competition_id": ["IT1", "IT1", "CIT", "IT1"],
+                "season": [2016, 2016, 2016, 2015],
+                "home_club_id": [12, 99, 12, 12],
+                "away_club_id": [99, 12, 99, 99],
+            }
+        ),
+        # 90 + 45 league minutes in 2016/17, the cup and 2015/16 left out
+        "tm_appearances": pd.DataFrame(
+            {
+                "player_id": [1, 1, 1, 1],
+                "game_id": [1, 2, 3, 4],
+                "player_club_id": [12] * 4,
+                "minutes_played": [90, 45, 90, 90],
+            }
+        ),
+    }
+    for name, table in tables.items():
+        con.register(name, table)
+    pairs = pd.DataFrame({"player_id": [101, 101], "club_id": [12, 99]}, index=[5, 6])
+    share = league_share(con, 2016, pairs)
+    assert share.to_dict() == {5: pytest.approx(135 / 180), 6: 0.0}
+
+
+def test_coaches_at_the_end_of_one_season_and_the_start_of_the_next():
+    con = duckdb.connect()
+    con.register(
+        "tm_competitions",
+        pd.DataFrame({"competition_id": ["GB1", "CGB"], "type": ["domestic_league", "cup"]}),
+    )
+    con.register(
+        "tm_games",
+        pd.DataFrame(
+            {
+                "competition_id": ["GB1", "GB1", "GB1", "CGB", "GB1"],
+                "season": [2015, 2015, 2016, 2016, 2016],
+                "date": pd.to_datetime(
+                    ["2016-03-01", "2016-05-15", "2016-08-13", "2016-08-01", "2016-08-20"]
+                ),
+                "home_club_id": [281, 99, 281, 281, 99],
+                "away_club_id": [99, 281, 99, 99, 281],
+                "home_club_manager_name": ["Pellegrini", "A", "Guardiola", "Cup", "A"],
+                "away_club_manager_name": ["B", "Pellegrini", "A", "A", "Guardiola"],
+            }
+        ),
+    )
+    assert coaches(con, 2016).to_dict("index") == {
+        99: {"before": "A", "after": "A"}, 281: {"before": "Pellegrini", "after": "Guardiola"},
     }  # fmt: skip

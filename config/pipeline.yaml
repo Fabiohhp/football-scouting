@@ -166,6 +166,20 @@ roles:
     CF: [[Target man, Mobile forward], [Deep-lying forward, Penalty-box striker],
          [Forward passer, Lay-off forward]]
 
+# How a team plays (decided 2026-10-30; evidence in notebooks/07_team_style.ipynb, sections 1 and
+# 2). `numbers`: the `analysis.teams` numbers a team's style is read from, over its season's
+# matches, its tackles, interceptions, fouls, clearances and pressures on one scale across
+# recording contexts; each is reliable (0.7 or more over a season) and no two correlate at 0.8 or
+# more across the teams (Spearman, the more reliable kept). `axes`: varimax-rotated principal
+# components of the standardised numbers, chosen by the rule of `roles.axes` (above shuffled
+# data, a reliability of 0.7 or more over a season, a mean congruence of 0.85 or more in random
+# halves of the teams). `names`: each axis's two ends, the low score first, in axis order.
+team_style:
+  numbers: [ppda, defence_height, high_press_share, counterpress_share, directness,
+            long_from_back, long_goal_kicks, wide_entries, cross_share, pass_ease]
+  axes: 2
+  names: [[Direct, Combination play], [Deep block, High press]]
+
 # Statistics recorded differently between leagues and, in the Premier League, from match week 19.
 # Players are compared on them within recording context: each league, and the Premier League
 # before and from `since` (decided 2026-10-11 and 2026-10-18; evidence in

@@ -114,7 +114,10 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     and the league played most in), `club_ids` and `club_leagues` (the club behind a valuation's
     club name, and each club's league by season), `season_clubs` (the club a player played most
     for in each season, to follow moves) and `player_outcomes`, all of them for the profiled
-    players;
+    players; for signings, `first_half_clubs` (the club a player was at from July to December,
+    from appearances or else a summer transfer), `league_share` (the share of a club's league
+    minutes a player played in a season) and `coaches` (each club's coach at the end of one
+    season and the start of the next);
   - `backtest`: judging a ranking. `pick_weights` (the top share, or a set number, of each comparison group, rows
     tied at the edge sharing the places left), `lexicographic` (a ranking by several keys),
     `pick_mean` and `pick_means` (a pick's mean outcome, several rankings at once, ranked afresh
@@ -152,6 +155,20 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     left out, filtered by age, league, market value, foot (`FOOT`) and side; `style_ends` and
     `in_common` (the style axis ends two players share) and `profile_gaps` (the profile statistics
     a candidate is furthest above and below the player on) say how a candidate is alike;
+  - `teams`: how a team plays. `player_match_sums` (one row per player, team and pool match: the
+    counts behind the team numbers that a player's own actions make), `team_match_sums` (one row per
+    team and pool match: those counts summed over the team's players, the opponent's counts they
+    need, the possessions and the time with the ball), `without` (a team's sums less a player's own,
+    to read a team without the player), `numbers` (`NUMBERS`: PPDA, the height of defensive actions,
+    pressing shares, possession, field tilt, passes per possession, tempo, directness, long balls,
+    wide entries, crosses, pass ease, from any sum of rows), `recording_factors` and `rescale` (the
+    `RECORDED` counts on one scale across recording contexts, their location sums following them),
+    `split_half` (each number's reliability over a season across teams, or that of any function of
+    the numbers, such as scores on style axes) and `pass_network` (a team's passing between the
+    positions of its most used formation, per 90 minutes in it; `position_code` for short names);
+    `fit` (how well a player fits a club, from their distances to every club's style in their
+    position: the share of the other clubs further away). The numbers a team's style is read from,
+    the number of team style axes and the names of their ends are `team_style` in the config;
   - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a
     number the league explains, between team-matches and for players within comparison group,
     and how much the team explains beyond chance;

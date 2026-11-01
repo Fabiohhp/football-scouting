@@ -1,6 +1,7 @@
 from datetime import date
 
 from football_scouting.analysis.style import NAMES
+from football_scouting.analysis.teams import NUMBERS as TEAM_NUMBERS
 from football_scouting.config import PROJECT_ROOT, load_config
 
 
@@ -77,3 +78,13 @@ def test_role_descriptors_are_style_descriptors_in_family_order():
     assert cfg.roles.axes == {"CB": 3, "FB": 3, "CM": 4, "AMW": 4, "CF": 3}
     assert cfg.roles.names["CB"][0] == ("Short passer", "Long passer")
     assert {g: len(ends) for g, ends in cfg.roles.names.items()} == cfg.roles.axes
+
+
+def test_team_style_numbers_are_team_numbers_in_order():
+    cfg = load_config()
+    ts = cfg.team_style
+    assert list(ts.numbers) == [n for n in TEAM_NUMBERS if n in ts.numbers]
+    assert len(ts.numbers) == 10 and ts.axes == 2 == len(ts.names)
+    # Tempo, field tilt, passes per possession and possession move with numbers kept.
+    assert not {"tempo", "field_tilt", "passes_per_possession", "possession"} & set(ts.numbers)
+    assert ts.names[0] == ("Direct", "Combination play")
