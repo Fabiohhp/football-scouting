@@ -72,6 +72,8 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
 - CI (`.github/workflows/ci.yml`, GitHub Actions) runs `make lint` and `make test` from
   `uv.lock` on every push to `main` and every pull request. The data tests, the notebooks and the
   reports need the processed data, which is not redistributable, so they run locally.
+  `astral-sh/setup-uv` publishes no major or minor tags since v8 (`@v10` does not resolve):
+  it is pinned to a release's commit, with the version in a comment.
 - With numpy 2.5 and pandas 2.3, `pd.Timedelta(days=n)` warns about a generic timedelta unit:
   write `pd.Timedelta(n, unit="D")`.
 
