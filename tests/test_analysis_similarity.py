@@ -1,3 +1,4 @@
+import duckdb
 import numpy as np
 import pandas as pd
 import pytest
@@ -6,7 +7,9 @@ from football_scouting.analysis.similarity import (
     coordinates,
     fit_block,
     in_common,
+    line,
     listed,
+    main_positions,
     nearest,
     own_rank,
     profile_gaps,
@@ -15,6 +18,7 @@ from football_scouting.analysis.similarity import (
     similar,
     style_ends,
 )
+from football_scouting.config import load_config
 
 
 def correlated(n: int = 500, seed: int = 0) -> pd.DataFrame:
@@ -167,3 +171,30 @@ def test_profile_gaps_are_the_largest_percentile_differences_each_way():
     gaps = profile_gaps(percentiles, "a", ["b", "c"])
     assert gaps.loc["b"].tolist() == ["passes", 30.0, "tackles", -20.0]
     assert gaps.loc["c", "below"] == "passes" and pd.isna(gaps.loc["c", "above"])
+
+
+def test_line_reads_the_position_within_its_group():
+    assert line("CM", "Left Defensive Midfield") == "Defensive"
+    assert line("CM", "Right Center Midfield") == "Central"
+    assert line("AMW", "Center Attacking Midfield") == "Attacking midfield"
+    assert line("AMW", "Right Wing") == "Wing" and line("AMW", "Left Midfield") == "Wide midfield"
+    assert (
+        line("CF", "Center Forward") == "Alone" and line("CF", "Left Center Forward") == "In a pair"
+    )
+    assert line("CB", "Left Center Back") is None
+
+
+def test_main_positions_count_only_time_in_the_groups_positions():
+    con = duckdb.connect()
+    con.execute(
+        "CREATE TABLE player_positions AS SELECT * FROM (VALUES "
+        "(1, 10, 'Right Wing', 'W', 600), (1, 10, 'Right Midfield', 'W', 300), "
+        "(1, 11, 'Right Midfield', 'W', 400), (1, 10, 'Center Forward', 'CF', 5000), "
+        "(2, 20, 'Center Attacking Midfield', 'AM', 900)) "
+        "t(player_id, team_id, position, position_group, seconds)"
+    )
+    out = main_positions(con, load_config(), pd.Series({1: "AMW", 2: "AMW"}))
+    # player 1: 700 seconds at right midfield against 600 on the wing; the centre-forward time is
+    # outside the group; team 10 with 900 seconds in the group's positions
+    assert out.loc[1].tolist() == ["Right Midfield", 10, "Right"]
+    assert out.loc[2, "position"] == "Center Attacking Midfield" and pd.isna(out.loc[2, "side"])

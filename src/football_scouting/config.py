@@ -112,6 +112,15 @@ class BacktestConfig:
 
 
 @dataclass(frozen=True)
+class CaseStudyConfig:
+    club: str  # StatsBomb team name of the club replacing a player
+    player: str  # the player it sold (`profile_players.known_as`)
+    group: str  # their comparison group
+    younger_than: float  # the candidates' age limit on the market view, in years
+    shortlist: int  # players on the shortlist
+
+
+@dataclass(frozen=True)
 class HttpConfig:
     timeout_seconds: float
     max_retries: int
@@ -125,6 +134,7 @@ class Paths:
     interim: Path
     processed: Path
     figures: Path
+    scouting: Path  # the case study's scouting reports
 
 
 @dataclass(frozen=True)
@@ -142,6 +152,7 @@ class Config:
     recording: RecordingConfig
     xt: XtConfig
     backtest: BacktestConfig
+    case_study: CaseStudyConfig
     http: HttpConfig
 
     def comparison_group_of(self) -> dict[str, str]:
@@ -264,6 +275,9 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
         raise ValueError("backtest.primary_horizon must be one of the horizons")
     if list(backtest.age_bands) != sorted(set(backtest.age_bands)):
         raise ValueError("backtest.age_bands must be distinct and in order")
+    case_study = CaseStudyConfig(**raw["case_study"])
+    if case_study.group not in profiles or case_study.shortlist < 1:
+        raise ValueError("case_study: a group with a profile and a shortlist of one or more")
     return Config(
         paths=paths,
         statsbomb=statsbomb,
@@ -278,5 +292,6 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH, root: Path = PROJECT_ROO
         recording=recording,
         xt=xt,
         backtest=backtest,
+        case_study=case_study,
         http=HttpConfig(**raw["http"]),
     )

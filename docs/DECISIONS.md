@@ -1291,3 +1291,123 @@ congruence averaged over 20,000 halves (entry below).
   nine opponents on each side (14 to 16 matches, the median by group).
 - Leaving out the opponent's two matches against the player's team changes its style little
   (correlations of 0.995 to 0.999 with the season's) and takes the player's own team out of it.
+
+## 2026-11-01: The recruitment case study: scenario and rules (notebook 08)
+
+**Decision** (set before any list of candidates was drawn up):
+- **The scenario**: AFC Bournemouth replacing Matt Ritchie, sold to Newcastle United on 1 July 2016
+  for €12M (Transfermarkt's transfers), decided on 30 June 2016, the back-test's market view, with
+  2015/16 information only.
+- **The budget**: Ritchie's fee over the median ratio of fee to market value among the profiled
+  players Premier League clubs bought with a fee on record the summer before (1 May to 31 August
+  2015, values on 30 June 2015): a ceiling on a candidate's market value, €7.85M. The summer of
+  2016 is the check.
+- **The candidates**: the attacking midfielders and wingers in the search's two lists (notebook
+  06), 27 or under on 30 June 2016, playing on the right, not Ritchie's teammates, valued within
+  the ceiling, their main team outside the strongest fifth of the 80 by goal difference per match.
+  The foot is shown, not filtered.
+- **The long list** is ordered by the distance from Ritchie in the search's space, list by list.
+  **The shortlist**: the five largest gaps within team (notebook 04) in the nearer half of the long
+  list. **The recommendation**: the shortlisted player who fits Bournemouth best (`teams.fit`,
+  notebook 07, section 4).
+- One-page scouting reports describe players as of 30 June 2016; outcomes are read only in the
+  notebook's last section.
+
+**Reason.**
+- **The scenario.** In the summer of 2016, 12 clubs placed 6th to 16th in the four leagues lost a
+  regular who played mainly on the wing or in wide midfield, with 55% or more of their league
+  minutes, still at the club from January to June. Bournemouth is the brief's case: a club in the
+  lower half with the league's smallest squad by market value (€89M on 30 June 2016, against a
+  median of €163M), losing a starter (87% of its league minutes). The coach stayed (Eddie Howe),
+  where fit went with minutes (notebook 07, section 4); the sale came the day after the market
+  view, with its fee on record; and the player the club signed for the role, Jordon Ibe, has a
+  profile, so the club's own choice can be read through the same steps. Considered and set aside:
+  Eibar (Keko), with a smaller budget and two profiled signings, but a free transfer with no fee;
+  Southampton (Sadio Mané, mainly an attacking midfielder), sixth, with a €41M fee and a new
+  coach; Swansea (André Ayew), which signed no winger that summer; Celta (Nolito), Sassuolo
+  (Nicola Sansone) and Bologna (Emanuele Giaccherini), whose signings for the role have no profile.
+- **The budget.** Transfermarkt dates summer transfers from 1 July (the earliest of 2015 and of
+  2016: 1 July), so the fees of the summer of 2016 were not known on 30 June 2016. The rule first
+  read them (a median of 1.99 over 23 transfers, a ceiling of €6.04M, Ritchie's own value) and
+  was changed to the summer before once that was seen, before any shortlist was drawn, so that
+  nothing after the market view enters the choices. In the summer of 2015 Premier League clubs
+  paid a median of 1.53 times the market value (37 transfers, quartiles 1.25 and 2.00), clubs in
+  the other three leagues 1.25 to 1.33. The ceiling is generous by the market the club met: in
+  2016 the Premier League's ratio rose to 1.99 while the others fell to 1.05 to 1.19, and three
+  players on the long list (Nathan Redmond, Santi Mina, Jordon Ibe) are valued between the two
+  ceilings. Fees are on record for few players and Transfermarkt's transfers are
+  survivorship-biased, so the ratio is a rough guide; it is checked on every player valued on 30
+  June, profiled or not (1.51 over 56 transfers in 2015, 1.74 over 60 in 2016).
+- **27 or under**: a player still near their peak over a contract of three or four years. Value
+  growth is scored within age bands, so the cap favours no one in the outcomes.
+- **The right side**: the club's three other profiled wide players played on the left, and side
+  has to be a filter (notebook 06, section 3). Requiring Ritchie's left foot as well would leave
+  about a dozen candidates.
+- **The strongest fifth** of teams does not sell its players at their market value (notebook 04,
+  section 1.6).
+- **The shortlist and the recommendation.** The gap within team is the only ranking tested before
+  its results were seen (notebook 04, section 3: its picks at the 63rd percentile of their age band
+  three years on); the nearer half of the long list keeps the role. Fit decides only among the
+  five, as its link with minutes showed only at clubs that kept their coach, a split found during
+  the analysis (notebook 07, section 4).
+
+## 2026-11-01: The recommendation and the scouting reports (notebook 08, section 4)
+
+**Decision.**
+- The recommendation follows the rule set beforehand: the shortlisted player who fits the club's
+  style best (`recruitment.recommend`; a tie would go to the larger gap). Lorenzo Pasciuti (Carpi,
+  fit 0.92, against 0.79 for Adri Embarba, the next).
+- One-page scouting reports (`make reports`, `reports/scouting/`) for each shortlisted player, the
+  player replaced and the players of the group the club signed, each as of 30 June 2016: team,
+  age, main position, foot and minutes; the profile as a pizza of percentiles (the player replaced
+  as outlines) and in each statistic's own unit; strengths and weaknesses; touch and shot maps;
+  the style axes beside the player replaced, the axis ends in common and the statistics furthest
+  above and below; the market value against the model's, fit, the distance from the player
+  replaced and the five nearest regulars, teammates included; and notes.
+- **Strengths and weaknesses**: the statistics at the 80th percentile or above and at the 20th or
+  below, at most three of each, the furthest from the middle first; a page says when there are
+  none.
+- **Notes**, each from a rule: a player profiled under the under-23 rule (fewer minutes, numbers
+  pulled further towards the group's mean); a team in the fourth fifth by goal difference per
+  match, next to the strongest fifth the rules leave out (whether the club would sell at the market
+  value); a team in its league's relegation places.
+- The club's signings are the players of the group at the club from July to December 2016
+  (`outcomes.first_half_clubs`) who played none of its 2015/16 pool matches: read after the
+  decision, only to choose whose page to write.
+- The package repeats sections 2 and 3 from the config (`case_study`, `recruitment.case_study`), so
+  that `make reports` needs no notebook; the notebook checks that it gives the same lists. Pages are
+  single HTML files with the figures inline as SVG without a date, rebuilt byte for byte.
+
+**Reason.**
+- A fixed top and bottom three would call a 60th percentile a strength when a profile has no
+  extremes; the outer fifths of the group are a mark a scout reads the same way on every page.
+- The notes cover what the numbers do not: a young player's numbers rest on few minutes (shrinkage
+  hides it), the rule on the strongest fifth is coarse (it let Jesse Lingard, a Manchester United
+  player, onto the shortlist, section 2), and a club in the relegation places plays in a lower
+  division the next season, which bears on whether and at what price it sells.
+- Reports of the player replaced and of the club's own signing, read the same way, show what the
+  rules would have said about the club's choice before its outcome is read (section 5).
+
+## 2026-11-02: What happened to the case study's choices (notebook 08, section 5)
+
+**Decision.**
+- The case study's players are judged by the back-test's outcomes (notebook 04, section 2): the
+  growth score within the age band at the four horizons, three years on read first, with league
+  minutes in the season before each horizon and the club named on the latest valuation.
+- The shortlist is set against every pick of five from the nearer half of the long list, the pool
+  it was drawn from, each pick equally likely (`backtest.chance`: all 20,349 picks, not a sample);
+  the recommendation and the club's signing by their places among the 42 of the long list.
+- The rules stay as they were set. The recommendation (Lorenzo Pasciuti, fit 0.92) had the worst
+  outcome of the five, at the 20th percentile three years on, while the shortlist's mean stood
+  above 99.8% of the picks; the miss is reported, not corrected.
+
+**Reason.**
+- The same outcomes as the back-test make the case one more reading of the gap, on players chosen
+  by rules set before the outcome was read.
+- Picks from the nearer half isolate the step the gap took (the shortlist from the nearer half)
+  from the steps before it, which every pick shares; every pick enumerated gives the exact share
+  with no sampling error.
+- Changing the last step after seeing the outcome would be choosing by hindsight. Value growth is
+  not what fit was chosen for (fit went with minutes at the club, notebook 07, section 4), and none
+  of the five joined Bournemouth, so the case cannot judge fit; it is an open question in
+  `PROGRESS.md`.

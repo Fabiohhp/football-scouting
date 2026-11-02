@@ -1,7 +1,8 @@
+import numpy as np
 import pandas as pd
 import pytest
 
-from football_scouting.analysis.backtest import lexicographic, pick_means, pick_weights
+from football_scouting.analysis.backtest import chance, lexicographic, pick_means, pick_weights
 
 
 def test_a_pick_takes_the_top_share_of_each_group():
@@ -52,3 +53,10 @@ def test_pick_means_rank_each_resample_afresh():
         "minutes": 10,
     }
     assert pick_means(data, keys, "score", places=1).to_dict() == {"gap": 90, "minutes": 10}
+
+
+def test_chance_is_the_mean_of_every_pick():
+    means = chance(pd.Series([1.0, 2.0, 3.0, 6.0]), 2)
+    assert sorted(means) == [1.5, 2.0, 2.5, 3.5, 4.0, 4.5]  # the six pairs
+    assert np.isclose(chance(pd.Series(range(21)), 5).mean(), 10)  # unbiased: the pool's mean
+    assert len(chance(pd.Series(range(21)), 5)) == 20349

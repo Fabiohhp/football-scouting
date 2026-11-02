@@ -5,6 +5,7 @@ import pytest
 from sklearn.linear_model import LinearRegression
 
 from football_scouting.analysis.market import (
+    gap,
     out_of_fold,
     partial,
     profile_matrix,
@@ -85,6 +86,38 @@ def test_out_of_fold_r2_is_measured_on_the_held_out_rows():
     r2, predictions = out_of_fold(LinearRegression, X, y, np.arange(200) // 4, repeats=2)
     assert 0.7 < r2.mean() < 0.85  # about 4 / 5 explained
     assert np.corrcoef(predictions, X.x)[0, 1] > 0.99
+
+
+def test_gap_is_the_out_of_sample_prediction_less_the_log_value():
+    rng = np.random.default_rng(0)
+    n = 120
+    players = pd.DataFrame(
+        {
+            "age": rng.uniform(18, 34, n),
+            "minutes": rng.uniform(900, 3400, n),
+            "league": rng.choice(["A", "B"], n),
+            "team_id": np.arange(n) // 10,
+            "team_goal_difference": np.repeat(rng.normal(0, 0.5, 12), 10),
+        },
+        index=pd.Index(np.arange(100, 100 + n), name="player_id"),
+    )
+    profile = pd.DataFrame({"shots": rng.normal(size=n)}, index=players.index)
+    log_value = 15 + players.minutes / 1000 + players.team_goal_difference + 0.3 * profile.shots
+    players["value"] = np.exp(log_value + rng.normal(0, 0.1, n))
+    players.loc[110, "value"] /= 10  # valued far below the numbers
+    out = gap(players, profile.iloc[:-1], ["A", "B"])  # the profile's rows only
+    assert out.index.equals(profile.index[:-1]) and out.idxmax() == 110
+    rows = players.iloc[:-1]
+    X = (
+        rows[["age", "minutes"]]
+        .assign(B=(rows.league == "B").astype(float), team=rows.team_goal_difference)
+        .join(profile)
+    )
+    _, predicted = out_of_fold(lambda: value_model(list(X.columns)), X, np.log(rows.value),
+                               rows.team_id)  # fmt: skip
+    assert out.to_numpy() == pytest.approx(predicted - np.log(rows.value).to_numpy())
+    across = gap(players, profile.iloc[:-1], ["A", "B"], team=False)  # without the team
+    assert across.std() > 2 * out.drop(110).std()
 
 
 def test_team_bootstrap_draws_whole_teams():

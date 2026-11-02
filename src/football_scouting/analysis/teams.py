@@ -36,22 +36,34 @@ multiplied so that its mean per team-match equals the mean over every context, a
 sums of its events follow it, so that a context keeps its heights. `split_half` measures how
 reliably each number, or any function of the numbers such as a team's scores on style axes, tells
 teams apart. `pass_network` draws a team's passing between the positions of the formation it
-plays most. `fit` reads how well a player fits a club from their distances to every club's style
-in their position, as a rank among the clubs.
+plays most.
+
+`team_seasons` gathers every team's and player's 2015/16 counts on one scale, `style_axes` fits the
+team style axes on them (`team_style` in the config) and `scores_without` reads a team's scores
+without one of its players. Fit (notebook 07, section 4): `fit_distances` measures how far a
+player's style is from every club's in their position, the team's part taken out on both sides by
+the slopes of the style descriptors on the team's scores (`style_slopes`, from the players who
+played for one team all season, `whole_season_team`), and `fit` reads the distances as a rank among
+the clubs.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import dataclass
 
 import duckdb
 import numpy as np
 import pandas as pd
+from scipy.spatial.distance import cdist
 
 from football_scouting.analysis import xpass
 from football_scouting.analysis.metrics import OPEN_PLAY
 from football_scouting.analysis.possession import team_possession
+from football_scouting.analysis.profiles import recording_context
+from football_scouting.analysis.roles import Axes, fit_axes
+from football_scouting.analysis.similarity import Block
+from football_scouting.config import Config
 
 KEYS = ["match_id", "team_id"]
 PLAYER_KEYS = [*KEYS, "player_id"]
@@ -277,6 +289,114 @@ def rescale(sums: pd.DataFrame, context: pd.Series, factors: pd.DataFrame) -> pd
         factor = f.set_index("context").factor.reindex(context.to_numpy()).fillna(1.0).to_numpy()
         for column in (statistic, *RECORDED[statistic]):
             out[column] = sums[column] * factor
+    return out
+
+
+@dataclass(frozen=True)
+class Seasons:
+    """Every team's and player's 2015/16 counts, on one scale across recording contexts."""
+
+    recorded: pd.DataFrame  # `team_match_sums`, as recorded
+    context: pd.Series  # each team-match's recording context
+    factors: pd.DataFrame  # `recording_factors` of the team-matches
+    matches: pd.DataFrame  # the team-matches on one scale (`rescale`)
+    season: pd.DataFrame  # each team's matches summed (index `team_id`)
+    own: pd.DataFrame  # each player's own counts at each team, summed (index player, team)
+
+
+def team_seasons(con: duckdb.DuckDBPyConnection, cfg: Config) -> Seasons:
+    """The team-matches and the players' own counts (`player_match_sums`), rescaled by the
+    team-matches' factors, and summed over the season."""
+    players = player_match_sums(con)
+    recorded = team_match_sums(con, players)
+    context = recording_context(recorded, cfg)
+    factors = recording_factors(recorded, context)
+    matches = rescale(recorded, context, factors)
+    own = rescale(players, recording_context(players, cfg), factors)
+    return Seasons(
+        recorded=recorded,
+        context=context,
+        factors=factors,
+        matches=matches,
+        season=matches.groupby("team_id").sum(numeric_only=True),
+        own=own.groupby(["player_id", "team_id"]).sum(numeric_only=True),
+    )
+
+
+def style_axes(season: pd.DataFrame, cfg: Config) -> Axes:
+    """The team style axes: `team_style.axes` varimax-rotated components of the `team_style`
+    numbers of the teams' seasons (`Seasons.season`), as notebook 07 chose them."""
+    return fit_axes(numbers(season)[list(cfg.team_style.numbers)], cfg.team_style.axes)
+
+
+def scores_without(
+    seasons: Seasons, axes: Axes, player_ids: Collection, team_ids: Collection
+) -> pd.DataFrame:
+    """The scores on `axes` of each player's team (`team_ids`, aligned with `player_ids`) over
+    the season, without the player's own actions (`without`), indexed by the players."""
+    team_rows = seasons.season.loc[team_ids].set_index(pd.Index(player_ids))
+    own_rows = seasons.own.loc[list(zip(player_ids, team_ids, strict=True))]
+    own_rows = own_rows.set_index(pd.Index(player_ids))
+    return axes.scores(numbers(without(team_rows, own_rows)))
+
+
+def whole_season_team(seasons: Seasons, players: Collection) -> pd.Series:
+    """The team of each of `players` who played for one team all season (player -> team), in
+    the order of `players`."""
+    teams = seasons.own.index.to_frame(index=False).groupby("player_id").team_id.agg(list)
+    teams = teams.loc[list(players)]
+    return teams[teams.map(len) == 1].str[0]
+
+
+def style_slopes(values: pd.DataFrame, scores: pd.DataFrame) -> pd.DataFrame:
+    """The slope of each column of `values` on each team score (`scores`, rows aligned): least
+    squares with an intercept, one row per axis and one column per column of `values`."""
+    x1 = np.column_stack([np.ones(len(values)), scores])
+    slopes = np.linalg.lstsq(x1, values.to_numpy(float), rcond=None)[0][1:]
+    return pd.DataFrame(slopes, index=scores.columns, columns=values.columns)
+
+
+def fit_distances(
+    sums: pd.DataFrame,
+    place: Callable[[pd.DataFrame], pd.DataFrame],
+    block: Block,
+    players: pd.Index,
+    *,
+    slopes: pd.DataFrame | None = None,
+    team_scores: pd.DataFrame | None = None,
+    old_scores: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """How far each of `players` is from every club's style in a position: one row per player,
+    one column per club.
+
+    `sums` has one row per player, team and match in the position's group: `team_id`,
+    `player_id` and the columns `place` reads (every column is summed). `place` turns sums of
+    matches into style descriptors on the season's terms, `block` (`similarity.fit_block`) puts
+    them in the space distances are measured in. A club's style is read from the summed matches
+    of all its players, without the player measured when they played for it.
+
+    With `slopes` (team axes x descriptors, `style_slopes`), the team's part is taken out on both
+    sides: each club's at its scores (`team_scores`, teams x axes), each player's at their old
+    team's scores without them (`old_scores`, aligned with `players`), so that the distance is
+    from the player as they would play at the club.
+    """
+    by_club = sums.groupby(["team_id", "player_id"]).sum()
+    clubs = by_club.groupby(level="team_id").sum()
+    theirs = by_club[by_club.index.get_level_values("player_id").isin(players)]
+    rest = clubs.loc[theirs.index.get_level_values("team_id")].set_index(theirs.index) - theirs
+    season = sums[sums.player_id.isin(players)].drop(columns="team_id").groupby("player_id").sum()
+    at = block.coordinates(place(season.loc[players]))
+    clubs_at = block.coordinates(place(clubs))
+    rest_at = block.coordinates(place(rest))
+    if slopes is not None:
+        moves = (slopes / block.scale) @ block.transform  # per unit of each team score
+        team_part = team_scores @ moves
+        at = at - old_scores.loc[players].to_numpy() @ moves.to_numpy()
+        clubs_at = clubs_at - team_part.loc[clubs_at.index].to_numpy()
+        rest_at = rest_at - team_part.loc[rest_at.index.get_level_values("team_id")].to_numpy()
+    out = pd.DataFrame(cdist(at, clubs_at), index=players, columns=clubs_at.index)
+    for (team, player), row in zip(rest_at.index, rest_at.to_numpy(), strict=True):
+        out.at[player, team] = np.linalg.norm(at.loc[player].to_numpy() - row)
     return out
 
 

@@ -1,0 +1,134 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ name }}: scouting report, {{ as_of }}{% endblock %}
+{% block content %}
+<header class="top">
+  <div>
+    <div class="kicker">Scouting report &middot; as of {{ as_of }} &middot; {{ club }}: replacing {{ reference }}</div>
+    <h1>{{ name }}</h1>
+  </div>
+  <div class="role{% if recommended %} pick{% endif %}">{{ role }}</div>
+</header>
+
+<dl class="facts">
+{% for label, value in facts %}
+  <dt>{{ label }}</dt><dd>{{ value }}</dd>
+{% endfor %}
+</dl>
+
+<div class="tiles">
+{% for tile in tiles %}
+  <div class="tile">
+    <div class="label">{{ tile.label }}</div>
+    <div class="value">{{ tile.value }}</div>
+    <div class="note">{{ tile.note }}</div>
+  </div>
+{% endfor %}
+</div>
+
+<div class="cols">
+  <section>
+    <h2>Profile</h2>
+    <img class="figure" src="{{ figures.pizza }}" alt="Pizza chart of {{ name }}'s twelve profile percentiles{% if not is_reference %}, with {{ reference }}'s as dashed outlines{% endif %}.">
+    <div class="legend">
+    {% for family, color in families %}
+      <span><span class="swatch" style="background: {{ color }}"></span>{{ family }}</span>
+    {% endfor %}
+    </div>
+    <p class="caption">Percentiles among the {{ group_size }} profiled {{ group | lower }}, higher always better{% if not is_reference %}; dashed: {{ reference_short }}{% endif %}.</p>
+  </section>
+  <section>
+    <h2>Strengths and weaknesses</h2>
+    <h3>Strengths <span class="caption">(percentile {{ strong }} or more)</span></h3>
+    {% if strengths %}
+    <ul class="points">
+    {% for s in strengths %}
+      <li><span class="chip">{{ s.percentile }}</span><span class="what">{{ s.label }}</span><span class="value">{{ s.value }}</span></li>
+    {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">No statistic at the {{ strong }}th percentile or above.</p>
+    {% endif %}
+    <h3>Weaknesses <span class="caption">(percentile {{ weak }} or less)</span></h3>
+    {% if weaknesses %}
+    <ul class="points">
+    {% for s in weaknesses %}
+      <li><span class="chip">{{ s.percentile }}</span><span class="what">{{ s.label }}</span><span class="value">{{ s.value }}</span></li>
+    {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">No statistic at the {{ weak }}th percentile or below.</p>
+    {% endif %}
+    {% if alike %}
+    <h3>Against {{ reference }}</h3>
+    <dl class="facts">
+      <dt>Style in common</dt><dd>{{ alike.ends }}</dd>
+      <dt>Furthest above on</dt><dd>{{ alike.above }}</dd>
+      <dt>Furthest below on</dt><dd>{{ alike.below }}</dd>
+    </dl>
+    {% endif %}
+    {% if notes %}
+    <div class="notes">
+    {% for note in notes %}
+      <p>{{ note }}</p>
+    {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<div class="cols">
+  <section>
+    <h2>Where {{ name }} touched the ball</h2>
+    <img class="figure" src="{{ figures.touches }}" alt="Heat map of {{ name }}'s touches in the matches played in the group's positions.">
+    <p class="caption">Share of touches by 5-yard zone, matches in the group's positions; each match mirrored so that the player's side is at the bottom.</p>
+  </section>
+  <section>
+    <h2>Shots</h2>
+    <img class="figure" src="{{ figures.shots }}" alt="Map of {{ name }}'s non-penalty shots, sized by xG.">
+    <p class="caption">{{ shots }} in the league.</p>
+  </section>
+</div>
+
+<div class="cols">
+  <section>
+    <h2>Style</h2>
+    <img class="figure" src="{{ figures.style }}" alt="{{ name }}'s scores on the four style axes of the group{% if not is_reference %}, with {{ reference }}'s{% endif %}.">
+    <p class="caption">Scores on the group's style axes among its {{ regulars }} regulars (grey: how they spread; the band: their middle third, between the two ends){% if not is_reference %}; ring: {{ reference_short }}{% endif %}. {% if ends %}At the end{{ "s" if ends | length > 1 }} of {{ ends | join(", ") }}.{% else %}At no axis end.{% endif %}</p>
+  </section>
+  <section>
+    <h2>Nearest regulars</h2>
+    <table>
+      <thead><tr><th>Player</th><th>Team</th><th class="num">Distance</th></tr></thead>
+      <tbody>
+      {% for p in nearest %}
+        <tr><td>{{ p.name }}</td><td>{{ p.team }}</td><td class="num">{{ p.distance }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="caption">In the search's space: the shrunk style descriptors and the profile, every regular of the group, teammates included.</p>
+  </section>
+</div>
+
+<section>
+  <h2>The profile in numbers</h2>
+  <table>
+    <thead><tr><th>Statistic</th><th class="num">Value</th><th class="num">Percentile</th><th style="width: 34%">{% if not is_reference %}<span class="caption">bar: {{ name }}; line: {{ reference_short }}</span>{% endif %}</th></tr></thead>
+    <tbody>
+    {% for row in profile %}
+      <tr>
+        <td><span class="swatch" style="background: {{ row.color }}"></span>{{ row.label }}</td>
+        <td class="num">{{ row.value }}</td>
+        <td class="num">{{ row.percentile }}{% if row.reference is not none %} <span class="caption">({{ row.reference }})</span>{% endif %}</td>
+        <td><div class="meter" role="img" aria-label="Percentile {{ row.percentile }}{% if row.reference is not none %}, {{ reference_short }} {{ row.reference }}{% endif %}"><div class="fill" style="width: {{ row.percentile }}%; background: {{ row.color }}"></div>{% if row.reference is not none %}<div class="mark" style="left: calc({{ row.reference }}% - 1px)"></div>{% endif %}</div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="caption">Values per 90 minutes or per action as noted, on an even share of possession and shrunk towards the group's mean by their reliability{% if not is_reference %}; {{ reference_short }}'s percentile in brackets{% endif %}.</p>
+</section>
+
+<footer>
+  <p>Data: StatsBomb Open Data (events and lineups, 2015/16), Transfermarkt via dcaribou/transfermarkt-datasets (market values on {{ as_of }}). Only information available on {{ as_of }} is used.</p>
+  <p>Methods: football-scouting, notebooks 02 (profiles), 04 (the market model and its gap), 05 (style axes), 06 (the search), 07 (fit) and 08 (the case study).</p>
+</footer>
+{% endblock %}

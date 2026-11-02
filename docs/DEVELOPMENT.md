@@ -16,6 +16,7 @@ make data              # download, convert, validate, coverage report (idempoten
 make model             # build-tables, links, database, profiles, dictionary (~2 min)
 make dq                # data quality tests on data/processed (pytest -m data)
 make notebooks         # re-run every notebook in place (needs `make model`)
+make reports           # the case study's scouting reports, reports/scouting/ (needs `make model`)
 make verify-statsbomb  # StatsBomb coverage + size estimate (metadata only); writes inventory.csv
 make download-statsbomb       # raw JSON -> data/raw/statsbomb/ (resumable, size-checked)
 make download-transfermarkt   # gz CSVs -> data/raw/transfermarkt/ (+ manifest.json)
@@ -38,10 +39,12 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   versions. Ruff (line length 100) for lint and format, notebooks included; pytest for tests.
 - Reusable logic in `src/football_scouting/`; thin entry points in `scripts/`, exposed as
   Makefile targets; `notebooks/` hold the analyses and import their logic from the package;
-  `reports/figures/` holds the figures used by the README.
+  `reports/figures/` holds the figures used by the README, `reports/scouting/` the case study's
+  scouting reports (HTML pages, each one file, rebuilt the same by `make reports`; templates in
+  `src/football_scouting/templates/`).
 - All parameters (sources, pinned versions, competitions, seasons, position and comparison
   groups, who is compared, profiles, role descriptors and style axes, recording contexts, the
-  xT map, back-test dates, paths, HTTP retry policy) come from `config/pipeline.yaml` via
+  xT map, back-test dates, the case study's scenario, paths, HTTP retry policy) come from `config/pipeline.yaml` via
   `football_scouting.config.load_config()`. No hard-coded IDs or paths in code.
 - Pipeline steps are idempotent and resumable: cached downloads (`http.fetch_json_cached`),
   atomic writes (`.part` + rename), retries with exponential backoff, existing files skipped.
@@ -104,8 +107,10 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     profiled player's team and its strength, `team_strength`, and their value on the market
     view), `profile_matrix` (a group's profile statistics, standardised), `value_model` (a ridge
     regression of log value, age through a spline), `team_folds`, `out_of_fold` and
-    `team_bootstrap` (checks and intervals that keep a team's players together) and `partial`
-    (a fitted model read one column at a time);
+    `team_bootstrap` (checks and intervals that keep a team's players together), `partial`
+    (a fitted model read one column at a time) and `gap` (a group's players' gap, the model's
+    out-of-sample log value less their own, within team or, without the team, across teams;
+    notebook 04);
   - `outcomes`: what happened after the market view, for the back-test. `value_growth` (each
     player's value at each horizon against 1 August 2016, and whether they are still valued),
     `age_band` and `growth_score` (growth as a percentile within age bands, players no longer
@@ -121,7 +126,8 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   - `backtest`: judging a ranking. `pick_weights` (the top share, or a set number, of each comparison group, rows
     tied at the edge sharing the places left), `lexicographic` (a ranking by several keys),
     `pick_mean` and `pick_means` (a pick's mean outcome, several rankings at once, ranked afresh
-    on each resample of `market.team_bootstrap`);
+    on each resample of `market.team_bootstrap`) and `chance` (the mean of every pick of a set
+    number from a pool: what picking at random gives; notebook 08, section 5);
   - `style`: which role a player plays, for role discovery. `player_match_style` (the sums
     `metrics.player_match_counts` lacks: touch spreads within the match, pass length and
     direction, pass height, the foot, carry distance), `descriptors` (27 shares and places in
@@ -152,9 +158,11 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     in). The search's space is two blocks, neither whitened: the shrunk style descriptors and the
     profile (notebook 06, section 1; `search_values`, `search_points`). `similar` is the search:
     a player's nearest candidates, list by list (the regulars, the young players apart), teammates
-    left out, filtered by age, league, market value, foot (`FOOT`) and side; `style_ends` and
-    `in_common` (the style axis ends two players share) and `profile_gaps` (the profile statistics
-    a candidate is furthest above and below the player on) say how a candidate is alike;
+    left out, filtered by age, league, market value, foot (`FOOT`) and side, reading the rows of
+    `search_players` (each profiled player's list, teams, foot, side, line and value; the position,
+    team and side from `main_positions`, the line from `line`); `style_ends` and `in_common` (the
+    style axis ends two players share) and `profile_gaps` (the profile statistics a candidate is
+    furthest above and below the player on) say how a candidate is alike;
   - `teams`: how a team plays. `player_match_sums` (one row per player, team and pool match: the
     counts behind the team numbers that a player's own actions make), `team_match_sums` (one row per
     team and pool match: those counts summed over the team's players, the opponent's counts they
@@ -166,15 +174,33 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
     `split_half` (each number's reliability over a season across teams, or that of any function of
     the numbers, such as scores on style axes) and `pass_network` (a team's passing between the
     positions of its most used formation, per 90 minutes in it; `position_code` for short names);
-    `fit` (how well a player fits a club, from their distances to every club's style in their
-    position: the share of the other clubs further away). The numbers a team's style is read from,
-    the number of team style axes and the names of their ends are `team_style` in the config;
+    `team_seasons` (every team-match and every player's own counts at each team, on one scale and
+    summed over the season), `style_axes` (the team style axes fitted on them) and
+    `scores_without` (a team's scores without one of its players); for fit, `whole_season_team`
+    (the players who played for one team all season), `style_slopes` (the descriptors' slopes on
+    the team's scores), `fit_distances` (a player's distance to every club's style in their
+    position, each club without them, the team's part taken out on both sides) and `fit` (the
+    distances as a rank: the share of the other clubs further away; notebook 07, section 4). The
+    numbers a team's style is read from, the number of team style axes and the names of their ends
+    are `team_style` in the config;
   - `leagues.eta_squared`, `leagues.league_effect` and `leagues.team_effect`: how much of a
     number the league explains, between team-matches and for players within comparison group,
     and how much the team explains beyond chance;
   - `links.statsbomb_games`, `links.transfermarkt_games` and `links.side_by_side`: each
     player-match's goals, cards and minutes (match clock) in both sources, lined up for any
-    pairing of StatsBomb and Transfermarkt players (checks of the links).
+    pairing of StatsBomb and Transfermarkt players (checks of the links);
+  - `recruitment`: the case study (notebook 08; the scenario is `case_study` in the config).
+    `sale` (the player's summer transfer), `fee_ratios` and `ceiling` (the budget: what a league's
+    clubs paid over market value in a summer), `team_fifths`, `candidates` (the search's
+    candidates filter by filter), `long_list` (each list's place and nearer half), `last_teams`
+    and `club_fit` (fit to one club, as notebook 07 reads it), `shortlist` and `recommend`,
+    `league_table` (each pool team's place); `case_study` chains them into a `CaseStudy` for
+    `make reports`, and `signings` reads the players of the group the club signed afterwards.
+- `football_scouting.reports`: one-page scouting reports of a case study's players as of the
+  market view. `report` gathers a page (facts, profile with `natural` units, `strengths`, figures
+  from `pizza`, `touch_figure`, `shot_figure` and `style_figure`, value, fit, nearest regulars,
+  notes), `render` fills the jinja2 template with the figures inline as SVG data URIs (`svg`, no
+  date in them, so a page rebuilds the same) and `write_reports` writes the pages and an index.
 - Figures use `football_scouting.plots`: `use_style()`, `position_colors(cfg)` and
   `credit(fig)` for the source line. Pitches are drawn with mplsoccer
   (`pitch_type="statsbomb"`).

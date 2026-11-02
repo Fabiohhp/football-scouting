@@ -13,6 +13,11 @@ players it was not fitted on, with folds that keep a team's players together (`t
 that no player is predicted by a model that saw a teammate; `team_bootstrap` resamples whole
 teams for intervals. `partial` reads a fitted model one column at a time, the others at their
 mean.
+
+A player's gap (`gap`, notebook 04) is the model's out-of-sample prediction of their log value less
+the log of their value: positive for a player valued below what their age, minutes, league, team
+and profile would have fetched. The back-test reads the gap within team first (the model with the
+team's goal difference per match); without it, the gap across teams.
 """
 
 from __future__ import annotations
@@ -138,6 +143,30 @@ def out_of_fold(
             predictions[r, test] = model.predict(X[test])
     r2 = 1 - ((predictions - y) ** 2).sum(axis=1) / ((y - y.mean()) ** 2).sum()
     return r2, predictions.mean(axis=0)
+
+
+def gap(
+    players: pd.DataFrame, profile: pd.DataFrame, leagues: Sequence[str], *, team: bool = True
+) -> pd.Series:
+    """The gap of a comparison group's players: the rows of `profile` (`profile_matrix`; no
+    columns for a model without the profile), indexed by `player_id`.
+
+    `players` are rows of `market_players` indexed by `player_id`. The model (`value_model`) reads
+    age, minutes, a 0/1 column for each of `leagues` but the first, the team's goal difference per
+    match (with `team`) and the profile; each player is predicted out of sample (`out_of_fold`,
+    teams held out). Returns the prediction less the log of the player's value.
+    """
+    rows = players.loc[profile.index]
+    X = rows[["age", "minutes"]].assign(
+        **{name: (rows.league == name).astype(float) for name in leagues[1:]}
+    )
+    if team:
+        X["team_goal_difference"] = rows.team_goal_difference
+    X = X.join(profile)
+    y = np.log(rows.value)
+    columns = list(X.columns)
+    _, predicted = out_of_fold(lambda: value_model(columns), X, y, rows.team_id)
+    return pd.Series(predicted - y.to_numpy(), index=profile.index, name="gap")
 
 
 def team_bootstrap(

@@ -13,7 +13,11 @@ from football_scouting.analysis.teams import (
     numbers,
     pass_network,
     player_match_sums,
+    scores_without,
+    style_axes,
     team_match_sums,
+    team_seasons,
+    whole_season_team,
     without,
 )
 from football_scouting.config import load_config
@@ -95,3 +99,35 @@ def test_a_pass_network_has_the_eleven_positions_of_the_formation(con):
     assert (network.edges.a < network.edges.b).all() and (network.edges.passes > 0).all()
     # completed passes between the eleven are fewer than the passes they play
     assert network.edges.passes.sum() < network.nodes.passes.sum()
+
+
+@pytest.fixture(scope="module")
+def seasons(con):
+    return team_seasons(con, CFG)
+
+
+def test_the_players_own_counts_add_up_to_their_teams_on_one_scale(seasons):
+    counted = ["passes", "tackles", "interceptions", "pressures"]
+    by_team = seasons.own.groupby(level="team_id")[counted].sum()
+    assert np.allclose(by_team, seasons.season.loc[by_team.index, counted])
+    assert len(seasons.season) == 80 and len(seasons.matches) == len(seasons.recorded)
+
+
+def test_the_team_axes_are_standardised_and_named_as_configured(seasons):
+    axes = style_axes(seasons.season, CFG)
+    scores = axes.scores(numbers(seasons.season))
+    assert np.allclose(scores.mean(), 0) and np.allclose(scores.std(ddof=0), 1)
+    # the names of `team_style.names` follow the numbers loading most on each axis
+    assert axes.loadings[1].idxmax() == "pass_ease"
+    assert axes.loadings[2].idxmax() == "defence_height"
+
+
+def test_a_team_without_one_of_its_players_plays_much_as_it_does(seasons):
+    axes = style_axes(seasons.season, CFG)
+    players = seasons.own.index.get_level_values("player_id").unique()
+    team_of = whole_season_team(seasons, players)
+    assert 0.8 < len(team_of) / len(players) < 1
+    alone = scores_without(seasons, axes, team_of.index, team_of.to_numpy())
+    together = axes.scores(numbers(seasons.season)).loc[team_of.to_numpy()]
+    for a in together:
+        assert np.corrcoef(alone[a], together[a])[0, 1] > 0.95

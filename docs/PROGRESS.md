@@ -23,7 +23,10 @@
   the style as processed tables. Similarity search: section 1 (how alike) on 2026-10-29,
   sections 2 (what similarity follows) and 3 (replacements) on 2026-10-30. Team style: sections 1
   (how a team plays), 2 (team style axes) and 3 (players within teams) on 2026-10-30, sections 4
-  (fit) and 5 (against which opponents, an addendum) on 2026-10-31.
+  (fit) and 5 (against which opponents, an addendum) on 2026-10-31. Recruitment case study: the
+  scenario and its rules, sections 1 (the vacancy), 2 (the long list), 3 (the shortlist) and 4
+  (the recommendation and the scouting reports) on 2026-11-01, section 5 (what happened) on
+  2026-11-02.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -543,12 +546,92 @@ Phase plan:
   rows in their team's matches, a team without all its players, every team's numbers in range, a
   pass network's eleven positions, one first-half club per player, coaches across seasons).
 
+### Phase 3: Recruitment case study `notebooks/08_recruitment_case_study.ipynb` (from 2026-11-01)
+- The scenario and its rules, set before any list of candidates was drawn up (`DECISIONS.md`,
+  2026-11-01): AFC Bournemouth replacing Matt Ritchie, sold to Newcastle United on 1 July 2016 for
+  €12M, decided on 30 June 2016. Of the 12 clubs placed 6th to 16th that lost a regular wide player
+  with 55% or more of their league minutes that summer, the one with the league's smallest squad,
+  a coach who stayed, the fee on record and a profiled signing for the role (Jordon Ibe). Budget:
+  the fee over what Premier League clubs paid against market value the summer before, the last
+  one known on 30 June 2016; candidates 27 or under, on the right, outside the strongest fifth of
+  teams; the shortlist by the gap within team in the nearer half of the long list; the
+  recommendation by fit to Bournemouth's style.
+- Section 1, the vacancy: Bournemouth 16th of 20 (42 points, goal difference -22) with the
+  league's smallest squad by market value (€89M on 30 June 2016, median €163M), Eddie Howe in the
+  last match of 2015/16 and the first of 2016/17. Ritchie, 26, 87% of the club's league minutes,
+  almost all at right midfield, two passes in three with the left foot, €6M. High percentiles for
+  ball security (90), pressures and shots (69), passes into the box (66); low for dribbles (5),
+  xG per shot (8), progressive carries and key passes (10); a link player, forward passer and
+  touchline winger on the style axes. Bournemouth: middle of the direct-to-combination axis, 6th
+  of 20 towards the high press, few yards per pass (14th percentile of 80), many wide entries
+  (91st); their wide players together cover the flank's length, stay wide, defend deep and rarely
+  enter the box, as Ritchie did. The club's three other profiled wide players played on the left.
+- Section 2, the long list: summer transfers are dated from 1 July, so the budget comes from the
+  summer of 2015 (Premier League clubs paid a median of 1.53 times the market value, 37 profiled
+  transfers; 1.25 to 1.33 elsewhere): a ceiling of €7.85M of market value. The check: in 2016 the
+  Premier League's ratio rose to 1.99 (a ceiling of €6.04M, Ritchie's own value) while the other
+  leagues' fell. 276 candidates outside Bournemouth, 114 on the right, 80 of them 27 or under, 45
+  within the budget, 42 outside the strongest fifth (34 regulars, 8 young players); the side costs
+  the most (11 of the 14 regulars nearer Ritchie than the first on the long list play elsewhere).
+  Nearest: Adrien Thomasson (Nantes, €2.5M, 1.31 from Ritchie, the 15th nearest of 249 regulars),
+  Ludovic Blas (Guingamp) among the young players; the nearer halves (17 regulars to Santi Mina, 4
+  young players) go to the shortlist. Most candidates lose the ball more often than Ritchie. A
+  caveat: Jesse Lingard (Manchester United, €5M) passes the rule on teams that do not sell.
+- Section 3, the shortlist: the five largest gaps within team (`market.gap`) of the 21 players in
+  the nearer halves: Ludovic Blas (Guingamp, 18, €0.3M against the model's €1.1M), Adri Embarba
+  (Rayo Vallecano, €1.0M against €2.7M), Lorenzo Pasciuti (Carpi, €1.3M against €3.0M), Jesse
+  Lingard (Manchester United, €5.0M against €9.8M) and Suso (Genoa, €3.3M against €5.3M), the 77th
+  to 98th percentile of the group's gaps; Thomasson, the nearest regular, is sixth. The nearer half
+  is valued close to its numbers (the model a median 1.05 times the market), the further half below
+  them (1.44). Fit to Bournemouth (`teams.fit_distances` and `fit`, reproducing notebook 07's fit of
+  its 52 signings of the group exactly): a median of 0.34 on the long list, 0.54 in the nearer
+  half; on the shortlist from 0.24 (Suso) to 0.92 (Pasciuti).
+- Shared code moved to the package for the case study, the notebooks that used it calling it now
+  with their outputs unchanged: `market.gap` (notebook 04's gap, reproduced exactly);
+  `similarity.search_players`, `main_positions` and `line` (notebook 06's candidate rows); and
+  `teams.team_seasons`, `style_axes`, `scores_without`, `whole_season_team`, `style_slopes` and
+  `fit_distances` (notebook 07's team seasons and fit). 163 unit tests (new: the gap, lines and
+  main positions, scores without a player, one-team players, slopes on the team axes, fit
+  distances) and 72 data tests (new: the search's rows for every profiled player, lists by minutes
+  and age, team seasons that add up, the team axes as configured, teams without one player).
+- Section 4, the recommendation and the scouting reports: Lorenzo Pasciuti fits Bournemouth's style
+  best of the five (0.92; Embarba 0.79, Blas 0.64, Lingard 0.32, Suso 0.24), is the nearest regular
+  of the five to Ritchie and shares all three of Ritchie's axis ends. Against Ritchie: the same ball
+  security (99th percentile, Ritchie 90th), more crossing and passes into the box, touches further
+  up the flank; no shooting (shots and xG at the bottom of the group) and less pressing. Jordon Ibe,
+  the player the club signed, is 29th of the long list's 34 regulars (further half, fit 0.30);
+  Ritchie's fit to Bournemouth without Ritchie is 0.94. One-page HTML reports (`make reports`,
+  `reports/scouting/`) for the shortlist, Ritchie and Ibe as of 30 June 2016, with an index:
+  profile pizza and table against Ritchie, strengths and weaknesses (80th percentile or above, 20th
+  or below, at most three each), touch and shot maps, style axes, value against the model, fit,
+  nearest regulars and rule-based notes; single files with inline SVG, rebuilt byte for byte.
+- The case study's steps moved to the package (`analysis.recruitment`, the scenario as
+  `case_study` in the config), sections 1 to 3 calling them with their outputs unchanged, so that
+  `make reports` needs no notebook; `reports` draws the pages (jinja2 templates in
+  `src/football_scouting/templates/`). 177 unit tests (new: the filters step by step, each list's
+  nearer half, the shortlist and the recommendation, team fifths, the ceiling, the case study in
+  the config, strengths and weaknesses, units, file names, SVG that rebuilds the same, the
+  figures, a player's role, the templates) and 78 data tests (new: the budget from the summer
+  before, every rule on the long list, the shortlist and the recommendation, the club's signing,
+  styles read back as stored, the reports written for every player).
+- Section 5, what happened (outcomes as in notebook 04: growth score within the age band at the
+  four horizons, three years on read first; league minutes; the club named on the valuation).
+  Three years on, four of the five shortlisted players stood at the 79th percentile of their age
+  band or above, all regulars in the big five: Lingard 96 (Manchester United, €40M), Suso 91 (AC
+  Milan, €40M), Embarba 79 (Rayo Vallecano, back in La Liga) and Blas 79 (Guingamp). Pasciuti, the
+  recommendation, stayed at Carpi outside the covered leagues (€1.4M on 1 August 2016, €0.6M in
+  2019; 20th percentile). The shortlist's mean, 72.8, against a median 37.3 for every pick of five
+  from the nearer half (20,349 picks, `backtest.chance`): 0.2% did as well, at most 1.7% at any
+  horizon. The long list grew less than the group (nearer half 37.6, further half 41.3, the
+  group's 305 profiled players 52.0). Ordered by fit the shortlist came out almost in reverse
+  (Pasciuti last, Lingard and Suso first). Jordon Ibe, the club's signing: 31%, 59% and 23% of
+  Bournemouth's league minutes from 2016/17 to 2018/19, 19th percentile three years on, 4th five
+  years on (€0.8M at Derby County); Pasciuti 26th and Ibe 29th of the long list's 42. Ritchie: 82nd
+  percentile (€12M, Newcastle United). 178 unit tests (new: every pick's mean) and 78 data tests.
+
 ## Next
 
-1. The recruitment case study (notebook 08), the last analysis of Phase 3: a club replacing a
-   starter in the summer of 2016 on a budget, from a long list to a shortlist to a
-   recommendation, with one-page scouting reports (HTML) for the shortlist; it draws on the
-   profiles, the back-test, the similarity search and fit to the club's style.
+1. Phase 4: the README for recruiters (findings and figures first), clean narrative notebooks, CI.
 
 ## Open questions
 
@@ -559,10 +642,17 @@ Phase plan:
 - Centre-forwards who lay the ball off grew less in value than those who pass it forward
   (Spearman -0.21 three years on, short of Holm's correction over 34 correlations, steady from
   two to five years on and beside minutes and the gap). Whether it reflects how clubs judge
-  forwards or chance is for the case study to test, on players it was not found on.
+  forwards or chance needs players it was not found on, from another season; the case study,
+  of a winger, does not test it.
 - Fit and minutes: signings played more where they fitted only at clubs that kept their coach
   (notebook 07, section 4), a split added during the analysis. Testing it on another season's
   signings needs event data beyond 2015/16.
+- Fit as the case study's last step: the shortlisted player who fitted Bournemouth best had the
+  worst career of the five, and the two who fitted least the best (notebook 08, section 5). Value
+  growth is not what fit was chosen for and none of the five joined the club, so one case cannot
+  say whether fit should decide among a shortlist or only be shown beside it; other clubs and
+  seasons would.
 - The meaning of `transfer_fee` 0 vs null (free, loan, unknown) is still unverified.
 - Before publishing: register interest at statsbomb.com/resource-centre (StatsBomb asks this
-  of open-data users) and add the StatsBomb logo from its Media Pack.
+  of open-data users) and add the StatsBomb logo from its Media Pack (the notebooks' figures and
+  the scouting reports credit StatsBomb in text only).

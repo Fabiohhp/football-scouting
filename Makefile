@@ -1,6 +1,6 @@
 .PHONY: help setup lint format test all data model dq verify-statsbomb download-statsbomb \
 	download-transfermarkt convert-statsbomb validate-statsbomb coverage-report build-tables \
-	links database profiles dictionary notebooks
+	links database profiles dictionary reports notebooks
 
 help:  ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-24s %s\n", $$1, $$2}'
@@ -60,6 +60,9 @@ profiles:  ## Profiles and styles (data/processed/profiles/; needs the database)
 
 dictionary:  ## Regenerate docs/DATA_DICTIONARY.md (fails on undocumented columns)
 	uv run python scripts/data_dictionary.py
+
+reports:  ## Scouting reports of the case study (reports/scouting/; needs `make model`)
+	uv run python scripts/build_reports.py
 
 notebooks:  ## Re-run every notebook in place (needs `make model`)
 	uv run jupyter nbconvert --to notebook --execute --inplace notebooks/*.ipynb

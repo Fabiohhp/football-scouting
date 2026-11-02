@@ -2,15 +2,22 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from football_scouting.analysis.roles import Axes
+from football_scouting.analysis.similarity import Block
 from football_scouting.analysis.teams import (
     NUMBERS,
     RECORDED,
+    Seasons,
     fit,
+    fit_distances,
     numbers,
     position_code,
     recording_factors,
     rescale,
+    scores_without,
     split_half,
+    style_slopes,
+    whole_season_team,
     without,
 )
 
@@ -116,3 +123,70 @@ def test_fit_is_the_share_of_the_other_clubs_further_away():
 def test_position_codes_are_the_initials():
     assert position_code("Left Center Back") == "LCB" and position_code("Center Forward") == "CF"
     assert position_code("Goalkeeper") == "GK"
+
+
+def seasons_of(season: pd.DataFrame, own: pd.DataFrame) -> Seasons:
+    """Seasons with only the season sums and the players' own sums."""
+    empty = pd.DataFrame()
+    return Seasons(empty, pd.Series(dtype=str), empty, empty, season, own)
+
+
+def test_scores_without_take_the_players_own_actions_out_of_the_team():
+    season = pd.concat([one_match(passes=600.0, seconds=1800.0), one_match(passes=300.0)])
+    season.index = pd.Index([10, 11], name="team_id")
+    own = pd.DataFrame({"passes": [60.0, 30.0, 1.0]},
+                       index=pd.MultiIndex.from_tuples([(1, 10), (2, 10), (3, 11)],
+                                                       names=["player_id", "team_id"]))  # fmt: skip
+    tempo = Axes(mean=pd.Series({"tempo": 0.0}), scale=pd.Series({"tempo": 1.0}),
+                 loadings=pd.DataFrame({1: [1.0]}, index=["tempo"]),
+                 weights=pd.DataFrame({1: [1.0]}, index=["tempo"]))  # fmt: skip
+    out = scores_without(seasons_of(season, own), tempo, [1, 2], [10, 10])
+    assert out[1].tolist() == pytest.approx([18, 19])  # 540 and 570 passes in 30 minutes
+    assert out.index.tolist() == [1, 2]
+
+
+def test_whole_season_team_keeps_the_players_with_one_team():
+    own = pd.DataFrame({"passes": [1.0, 1.0, 1.0, 1.0]},
+                       index=pd.MultiIndex.from_tuples([(1, 10), (2, 10), (2, 11), (3, 12)],
+                                                       names=["player_id", "team_id"]))  # fmt: skip
+    out = whole_season_team(seasons_of(pd.DataFrame(), own), [3, 2, 1])
+    assert out.to_dict() == {3: 12, 1: 10} and out.index.tolist() == [3, 1]
+
+
+def test_style_slopes_are_least_squares_slopes_on_each_axis():
+    rng = np.random.default_rng(0)
+    scores = pd.DataFrame(rng.normal(size=(50, 2)), columns=[1, 2])
+    values = pd.DataFrame({"a": 2 + 3 * scores[1] - scores[2], "b": 1 + 0.5 * scores[2]})
+    out = style_slopes(values, scores)
+    assert out.loc[1].tolist() == pytest.approx([3, 0]) and out.loc[2].tolist() == pytest.approx(
+        [-1, 0.5]
+    )
+
+
+def test_fit_distances_read_each_club_without_the_player_and_take_the_teams_part_out():
+    sums = pd.DataFrame(
+        {
+            "team_id": [1, 1, 2, 2, 3],
+            "player_id": [7, 8, 9, 10, 11],
+            "a": [10.0, 30.0, 20.0, 20.0, 50.0],
+            "minutes": [10.0] * 5,
+        }
+    )
+
+    def place(s):  # a rate per minute
+        return pd.DataFrame({"a": s.a / s.minutes})
+
+    block = Block(pd.Series({"a": 0.0}), pd.Series({"a": 1.0}), pd.DataFrame({"a": [1.0]}, ["a"]))
+    out = fit_distances(sums, place, block, pd.Index([7, 9]))
+    # player 7 (1 a minute) against club 1 without them (player 8: 3), club 2 (2) and club 3 (5)
+    assert out.loc[7].tolist() == pytest.approx([2, 1, 4])
+    assert out.loc[9].tolist() == pytest.approx([0, 0, 3])  # club 1 (2), club 2 without them (2)
+    team_scores = pd.DataFrame({1: [0.0, 1.0, -1.0]}, index=pd.Index([1, 2, 3], name="team_id"))
+    shift = {
+        "slopes": pd.DataFrame({"a": [1.0]}, index=[1]),
+        "team_scores": team_scores,
+        "old_scores": pd.DataFrame({1: [0.5]}, index=[7]),
+    }
+    shifted = fit_distances(sums, place, block, pd.Index([7]), **shift)
+    # player 7 at 1 - 0.5; club 1 without them at 3 - 0, club 2 at 2 - 1, club 3 at 5 + 1
+    assert shifted.loc[7].tolist() == pytest.approx([2.5, 0.5, 5.5])

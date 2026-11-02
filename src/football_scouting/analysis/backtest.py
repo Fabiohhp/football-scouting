@@ -8,11 +8,14 @@ players' mean outcome
 picks of the same size. Ties at the edge of a pick (round values, teammates sharing their team's
 strength) share the places left, which is the pick a random tie-break would make on average.
 `lexicographic` orders by several keys, the later ones breaking the earlier ones' ties.
+`chance` gives the mean of every pick of a set number from a pool: where a single pick of that
+size stands against picking at random (notebook 08, section 5).
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from itertools import combinations
 
 import numpy as np
 import pandas as pd
@@ -73,3 +76,10 @@ def pick_means(
             for name, key in keys.items()
         }
     )
+
+
+def chance(values: pd.Series, n: int) -> np.ndarray:
+    """The mean of `values` over every pick of `n` of them, each pick equally likely: the means
+    picking `n` at random would give."""
+    picks = np.array(list(combinations(values.to_numpy(dtype=float), n)))
+    return picks.mean(axis=1)

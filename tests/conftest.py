@@ -14,6 +14,7 @@ def tmp_config(tmp_path) -> Config:
         interim=tmp_path / "interim",
         processed=tmp_path / "processed",
         figures=tmp_path / "figures",
+        scouting=tmp_path / "scouting",
     )
     http = HttpConfig(timeout_seconds=5, max_retries=0, backoff_seconds=0, max_workers=2)
     return replace(cfg, paths=paths, http=http)

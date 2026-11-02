@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from football_scouting.analysis.style import NAMES
 from football_scouting.analysis.teams import NUMBERS as TEAM_NUMBERS
 from football_scouting.config import PROJECT_ROOT, load_config
@@ -88,3 +90,16 @@ def test_team_style_numbers_are_team_numbers_in_order():
     # Tempo, field tilt, passes per possession and possession move with numbers kept.
     assert not {"tempo", "field_tilt", "passes_per_possession", "possession"} & set(ts.numbers)
     assert ts.names[0] == ("Direct", "Combination play")
+
+
+def test_the_case_study_is_a_profiled_group_and_writes_its_reports_under_reports(tmp_path):
+    cfg = load_config()
+    cs = cfg.case_study
+    assert (cs.club, cs.player, cs.group) == ("AFC Bournemouth", "Matt Ritchie", "AMW")
+    assert cs.younger_than == 28 and cs.shortlist == 5
+    assert cfg.paths.scouting == PROJECT_ROOT / "reports" / "scouting"
+    text = (PROJECT_ROOT / "config" / "pipeline.yaml").read_text()
+    path = tmp_path / "pipeline.yaml"
+    path.write_text(text.replace("  group: AMW\n", "  group: GK\n"))  # no profile
+    with pytest.raises(ValueError, match="case_study"):
+        load_config(path)

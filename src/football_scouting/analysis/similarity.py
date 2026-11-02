@@ -21,9 +21,11 @@ player apart from the group's mean comes in more of them.
 The search (notebook 06) compares a group's players by two blocks, neither whitened: their shrunk
 style descriptors and their profile (`search_values`, `search_points`). `similar` lists the
 candidates nearest a player, list by list (the regulars, and the young players with fewer
-minutes apart), filtered by age, league, market value, foot and side. Two things say how a
-candidate is like the player: the ends of the style axes both stand at (`style_ends`,
-`in_common`), and the profile statistics they differ most on (`profile_gaps`).
+minutes apart), filtered by age, league, market value, foot and side; `search_players` gives the
+players' rows it reads. Two things say how a candidate is like the player: the ends of the style
+axes both stand at (`style_ends`, `in_common`), and the profile statistics they differ most on
+(`profile_gaps`). A player's position, team, side (`main_positions`) and line (`line`) are read
+from the time they spent in their group's positions.
 """
 
 from __future__ import annotations
@@ -31,9 +33,12 @@ from __future__ import annotations
 from collections.abc import Collection, Hashable, Sequence
 from dataclasses import dataclass
 
+import duckdb
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
+
+from football_scouting.config import Config
 
 FOOT = 0.5  # left-footed: this share of the passes played with either foot or more with the left
 THIRD = 1 / 3  # an axis's ends: the bottom and top third of the regulars' scores
@@ -143,6 +148,86 @@ def search_points(values: dict[str, pd.DataFrame], regulars: Collection) -> pd.D
     block fitted on the `regulars` among them, neither whitened."""
     blocks = {name: fit_block(v[v.index.isin(regulars)]) for name, v in values.items()}
     return coordinates(blocks, values)
+
+
+def line(group: str, position: str) -> str | None:
+    """The line of a recorded position within its comparison group (None if the group has one):
+    central midfielders defensive or central, attacking midfielders and wingers in attacking
+    midfield, on the wing or in wide midfield, centre-forwards alone or in a pair."""
+    if group == "CM":
+        return "Defensive" if "Defensive" in position else "Central"
+    if group == "AMW":
+        if "Attacking" in position:
+            return "Attacking midfield"
+        return "Wing" if "Wing" in position else "Wide midfield"
+    if group == "CF":
+        return "Alone" if position == "Center Forward" else "In a pair"
+    return None
+
+
+def main_positions(con: duckdb.DuckDBPyConnection, cfg: Config, group: pd.Series) -> pd.DataFrame:
+    """Each player of `group` (player id -> comparison group): the `position` and the `team_id`
+    they spent the most time in among their group's positions, each read on its own (a tie goes
+    to the last in sort order), and their `side` ("Left" or "Right" from the position's name,
+    missing in the centre)."""
+    members = {m: c.code for c in cfg.comparison_groups for m in c.members}
+    time_in = con.sql(
+        "SELECT player_id, team_id, position, position_group, sum(seconds) AS seconds "
+        "FROM player_positions GROUP BY ALL"
+    ).df()
+    time_in = time_in[time_in.player_id.isin(group.index)]
+    time_in = time_in[
+        time_in.position_group.map(members) == group.loc[time_in.player_id].to_numpy()
+    ]
+
+    def most(column: str) -> pd.Series:
+        t = time_in.groupby(["player_id", column]).seconds.sum().reset_index()
+        return t.sort_values(["seconds", column]).groupby("player_id")[column].last()
+
+    out = pd.DataFrame({"position": most("position"), "team_id": most("team_id")})
+    out["side"] = out.position.str.split().str[0].where(lambda s: s.isin(["Left", "Right"]))
+    return out
+
+
+def search_players(
+    con: duckdb.DuckDBPyConnection, cfg: Config, market: pd.DataFrame, rows: pd.DataFrame
+) -> pd.DataFrame:
+    """One row per player of `market` (`market.market_players`, indexed by `player_id`) with the
+    columns `similar` reads and those a list shows.
+
+    `list`: "Regulars" for `compared.minutes` or more in their group's positions (the minutes the
+    style is read from), "Young" for players under `compared.young_age` on the market view with
+    `compared.young_minutes` or more, missing for the others; `teams`: the set of teams they played
+    a pool match for; `left_foot`: the left foot's share of their passes played with either foot
+    in their group's positions (from `rows`, `roles.style_matches`); `side` and `line` from their
+    `main_positions`; `team` (the name of their main team), `league`, `age`, `minutes` (in their
+    group's positions) and `value` (on the market view).
+    """
+    group = market.comparison_group
+    minutes = (
+        con.sql("SELECT player_id, max(minutes) AS minutes FROM style_scores GROUP BY player_id")
+        .df()
+        .set_index("player_id")
+        .minutes.reindex(market.index)
+    )
+    young = (market.age < cfg.compared.young_age) & (minutes >= cfg.compared.young_minutes)
+    lists = np.select([minutes >= cfg.compared.minutes, young], ["Regulars", "Young"], None)
+    feet = rows.groupby("player_id")[["left_foot_passes", "foot_passes"]].sum()
+    teams = con.sql(
+        "SELECT DISTINCT pm.player_id, pm.team_id FROM player_matches pm "
+        "JOIN matches m USING (match_id) WHERE m.scouting_pool AND pm.played"
+    ).df()
+    teams = teams[teams.player_id.isin(market.index)].groupby("player_id").team_id.agg(frozenset)
+    names = con.sql("SELECT DISTINCT team_id, team_name FROM teams").df().set_index("team_id")
+    at = main_positions(con, cfg, group)
+    out = pd.DataFrame({
+        "name": market.known_as, "group": group, "list": pd.Series(lists, index=market.index),
+        "teams": teams, "team": market.team_id.map(names.team_name), "league": market.league,
+        "age": market.age, "minutes": minutes, "value": market.value,
+        "left_foot": feet.left_foot_passes / feet.foot_passes, "side": at.side,
+    }).loc[market.index]  # fmt: skip
+    out["line"] = [line(g, at.position[p]) for p, g in out.group.items()]
+    return out
 
 
 def similar(

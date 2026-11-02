@@ -6,6 +6,7 @@ paths:
   interim: data/interim
   processed: data/processed
   figures: reports/figures
+  scouting: reports/scouting
 
 statsbomb:
   repo: statsbomb/open-data
@@ -225,6 +226,17 @@ backtest:
   big_five: [GB1, ES1, IT1, FR1, L1]
   regular_minutes: 900
   champions_league: CL
+
+# The recruitment case study (decided 2026-11-01; notebooks/08_recruitment_case_study.ipynb, the
+# rules in docs/DECISIONS.md): the club replacing a player it sold on the back-test's market view,
+# the player (by the name they are known by) and their comparison group; candidates younger than
+# `younger_than` on the market view; the `shortlist`'s size (`analysis.recruitment`).
+case_study:
+  club: AFC Bournemouth
+  player: Matt Ritchie
+  group: AMW
+  younger_than: 28
+  shortlist: 5
 
 transfermarkt:
   # dcaribou/transfermarkt-datasets, gzipped CSV exports (license CC0-1.0).
