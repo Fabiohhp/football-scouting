@@ -43,3 +43,9 @@ def position_colors(cfg: Config) -> dict[str, str]:
 def credit(fig: Figure, text: str = CREDIT) -> None:
     """Source line in the bottom-left corner (StatsBomb asks to be credited)."""
     fig.text(0.01, -0.02, text, fontsize=7.5, color=GREY, ha="left", va="top")
+
+
+def save(fig: Figure, name: str, cfg: Config) -> None:
+    """A README figure, `name`.png in the figures folder, the same bytes on every run."""
+    cfg.paths.figures.mkdir(parents=True, exist_ok=True)
+    fig.savefig(cfg.paths.figures / f"{name}.png", metadata={"Software": None})

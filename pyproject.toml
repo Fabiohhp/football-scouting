@@ -3,6 +3,8 @@ name = "football-scouting"
 version = "0.1.0"
 description = "Data-driven football scouting: a historical recruitment back-test on the 2015/16 Big 5 season."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Fabio", email = "fabiohhp@gmail.com" }
 ]

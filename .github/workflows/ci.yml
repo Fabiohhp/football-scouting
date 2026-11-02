@@ -1,0 +1,32 @@
+# Lint and unit tests on every push and pull request. The data tests (`make dq`) and the
+# notebooks need the processed data, which is not redistributable, so they run locally;
+# tests/test_notebooks.py checks that the committed notebooks ran top to bottom.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - name: Install the locked environment (Python from .python-version)
+        run: uv sync --locked
+      - name: Lint
+        run: make lint
+      - name: Unit tests
+        run: make test

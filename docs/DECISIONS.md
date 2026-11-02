@@ -1411,3 +1411,34 @@ congruence averaged over 20,000 halves (entry below).
   not what fit was chosen for (fit went with minutes at the club, notebook 07, section 4), and none
   of the five joined Bournemouth, so the case cannot judge fit; it is an open question in
   `PROGRESS.md`.
+
+## 2026-11-02: Packaging: the README, its figures, CI and the licence (Phase 4)
+
+**Decision.**
+- The README is written for recruitment staff: the question, the headline numbers and the
+  back-test's shortlists first, the case study as the worked example with its one miss stated,
+  then the results the data did not support in a section of their own, the caveats, the
+  methodology, the notebooks and how to reproduce. Every number in it comes from an executed
+  notebook.
+- Each README figure is saved by the notebook that draws it (`plots.save`, PNG without the
+  software's version, so a re-run writes the same bytes); no separate figure script. The scouting
+  report appears as a screenshot of the top of the recommendation's page, linked to the HTML.
+- CI (GitHub Actions) runs the lint and the unit tests from `uv.lock` on every push to `main` and
+  every pull request. A unit test checks that every committed notebook ran top to bottom with no
+  errors and no warnings. The data tests, the notebooks and the reports run locally.
+- The code is released under the MIT licence; the data is not redistributed.
+- Before packaging, the processed tables were rebuilt from the interim layer and every notebook
+  re-run in place, to check that the committed results reproduce.
+
+**Reason.**
+- A recruiter reads the top of the page; the negative results sit beside the positive ones
+  because they were tested the same way and bound what the positive ones mean.
+- One source per figure: the README shows exactly what the notebook shows, rebuilt by `make
+  notebooks`, with no second plotting code to drift from it. GitHub shows an HTML file in a
+  repository as source, so the report needs a picture to be seen there.
+- StatsBomb's terms forbid redistributing the data and the download is about 4.5 GB, so CI cannot
+  build the processed tables; the unit tests run on synthetic data in seconds. The notebook test
+  catches a notebook edited but not re-run, or one committed with a warning (one was: a pandas
+  `Timedelta` deprecation under numpy 2.5 in notebook 08's last figure).
+- The MIT licence lets others read and reuse the code; StatsBomb's and Transfermarkt's terms govern
+  their data.

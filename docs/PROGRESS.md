@@ -27,6 +27,8 @@
   scenario and its rules, sections 1 (the vacancy), 2 (the long list), 3 (the shortlist) and 4
   (the recommendation and the scouting reports) on 2026-11-01, section 5 (what happened) on
   2026-11-02.
+- **Phase 4, packaging:** started 2026-11-02: CI, the notebooks re-run from a rebuilt model, the
+  README with its figures, the notebooks' reading guide, the licence.
 
 Phase plan:
 - Phase 2: analytical data model, minutes, positions, entity resolution, data quality, data
@@ -629,9 +631,35 @@ Phase plan:
   years on (€0.8M at Derby County); Pasciuti 26th and Ibe 29th of the long list's 42. Ritchie: 82nd
   percentile (€12M, Newcastle United). 178 unit tests (new: every pick's mean) and 78 data tests.
 
+### Phase 4: Packaging (from 2026-11-02)
+- CI: `.github/workflows/ci.yml` runs `make lint` and `make test` from `uv.lock` on every push to
+  `main` and every pull request (checked on a copy of the repository without any data).
+  `tests/test_notebooks.py` checks that every committed notebook ran top to bottom with no errors
+  and no warnings; it found one, a pandas `Timedelta` deprecation in notebook 08, now fixed.
+- Reproduction: `make model` rebuilt from the interim layer gives 50 of the 51 processed tables
+  byte for byte, the last (`player_seasons`) within 1.4e-12 minutes; `make notebooks` (25
+  minutes) then gives every output of the eight committed notebooks again, text and figures,
+  but for the warning removed.
+- Notebooks: four gendered pronouns replaced; every cross-reference to another notebook's section
+  checked; [`notebooks/README.md`](../notebooks/README.md), a reading guide with each notebook's
+  question and what it found.
+- README for recruiters: the headline numbers and figures first, the case study, the results the
+  data did not support, caveats, methodology (with a diagram), notebooks, how to reproduce,
+  attribution. Seven figures in `reports/figures/`, six saved by their notebooks (`plots.save`)
+  and a screenshot of the recommendation's scouting report. MIT licence for the code. The
+  reports' pizza labels moved clear of a value near 100 (they overlapped it). The README carries
+  the StatsBomb logo, from the open-data repository at the pinned commit, as StatsBomb's terms
+  ask of published analysis, and the author's name and LinkedIn.
+- 188 unit tests (new: the notebooks as committed, a README figure saved the same) and 78 data
+  tests.
+
 ## Next
 
-1. Phase 4: the README for recruiters (findings and figures first), clean narrative notebooks, CI.
+1. Before publishing: register interest at statsbomb.com/resource-centre (StatsBomb asks this of
+   open-data users); add the StatsBomb logo to the scouting reports, which credit StatsBomb in
+   text only; make the repository public, then consider GitHub Pages for the scouting reports.
+2. Possible extensions: the 2022 World Cup positional and tracking module; another season's event
+   data to replicate the back-test and test the open questions below.
 
 ## Open questions
 
@@ -653,6 +681,3 @@ Phase plan:
   say whether fit should decide among a shortlist or only be shown beside it; other clubs and
   seasons would.
 - The meaning of `transfer_fee` 0 vs null (free, loan, unknown) is still unverified.
-- Before publishing: register interest at statsbomb.com/resource-centre (StatsBomb asks this
-  of open-data users) and add the StatsBomb logo from its Media Pack (the notebooks' figures and
-  the scouting reports credit StatsBomb in text only).

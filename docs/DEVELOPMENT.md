@@ -39,8 +39,11 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   versions. Ruff (line length 100) for lint and format, notebooks included; pytest for tests.
 - Reusable logic in `src/football_scouting/`; thin entry points in `scripts/`, exposed as
   Makefile targets; `notebooks/` hold the analyses and import their logic from the package;
-  `reports/figures/` holds the figures used by the README, `reports/scouting/` the case study's
-  scouting reports (HTML pages, each one file, rebuilt the same by `make reports`; templates in
+  `reports/figures/` holds the figures used by the README (each saved by the notebook that draws
+  it, with `plots.save`; `scouting_report.png` is the top of
+  `reports/scouting/lorenzo-pasciuti.html`, a headless Chromium screenshot 1,100 pixels wide,
+  cropped; `statsbomb_logo.png` is StatsBomb's logo as published in `img/` of the open-data
+  repository at the pinned commit), `reports/scouting/` the case study's scouting reports (HTML pages, each one file, rebuilt the same by `make reports`; templates in
   `src/football_scouting/templates/`).
 - All parameters (sources, pinned versions, competitions, seasons, position and comparison
   groups, who is compared, profiles, role descriptors and style axes, recording contexts, the
@@ -58,13 +61,24 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   `shot.statsbomb_xg`.
 - DuckDB connections for big scans come from `statsbomb_parquet.connect()` (4 threads, 3 GB
   limit): the JSON conversion peaks at about 4 GB of memory.
+- `make model` rebuilt from the interim layer reproduces every processed table byte for byte,
+  except `player_seasons`' minutes by position group, which differ by at most 1.4e-12 minutes
+  (DuckDB sums in parallel, in no fixed order); nothing built from them changes.
 - New processed columns must be described in `src/football_scouting/model/dictionary.yaml`
   (`make dictionary` fails otherwise).
 - Tests that hit the network are marked `network`; tests on the processed data are marked
-  `data` and run with `make dq`.
+  `data` and run with `make dq`. `tests/test_notebooks.py` checks, without the data, that every
+  committed notebook ran top to bottom with no errors and nothing on stderr (warnings).
+- CI (`.github/workflows/ci.yml`, GitHub Actions) runs `make lint` and `make test` from
+  `uv.lock` on every push to `main` and every pull request. The data tests, the notebooks and the
+  reports need the processed data, which is not redistributable, so they run locally.
+- With numpy 2.5 and pandas 2.3, `pd.Timedelta(days=n)` warns about a generic timedelta unit:
+  write `pd.Timedelta(n, unit="D")`.
 
 ## Notebooks
 
+- [`notebooks/README.md`](../notebooks/README.md) is the reading guide: each notebook's question
+  and what it found. `make notebooks` reruns all eight in place (about 25 minutes).
 - `football_scouting.model.database.connect_readonly(load_config())` gives a DuckDB connection
   with every processed table as a view (Transfermarkt tables prefixed `tm_`).
 - Helpers in `football_scouting.analysis`:
@@ -201,8 +215,9 @@ Run a single script: `uv run python scripts/<name>.py`. Add a dependency: `uv ad
   from `pizza`, `touch_figure`, `shot_figure` and `style_figure`, value, fit, nearest regulars,
   notes), `render` fills the jinja2 template with the figures inline as SVG data URIs (`svg`, no
   date in them, so a page rebuilds the same) and `write_reports` writes the pages and an index.
-- Figures use `football_scouting.plots`: `use_style()`, `position_colors(cfg)` and
-  `credit(fig)` for the source line. Pitches are drawn with mplsoccer
+- Figures use `football_scouting.plots`: `use_style()`, `position_colors(cfg)`, `credit(fig)`
+  for the source line and `save(fig, name, cfg)` for a README figure (`reports/figures/`, the
+  same bytes on every run). Pitches are drawn with mplsoccer
   (`pitch_type="statsbomb"`).
 - Players are compared within the six `comparison_groups` of the config, not the seven
   position groups, and read through the twelve statistics of their group's profile

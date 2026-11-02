@@ -154,7 +154,7 @@ def pizza(percentiles: pd.Series, compare: pd.Series | None = None) -> Figure:
         fig, _ = baker.make_pizza(
             [round(v) for v in percentiles], figsize=(5.2, 5.4), color_blank_space="same",
             slice_colors=colors, value_colors=["white"] * len(colors), value_bck_colors=colors,
-            blank_alpha=0.16,
+            blank_alpha=0.16, param_location=115,  # labels clear of a value near 100
             kwargs_slices={"edgecolor": "white", "zorder": 2, "linewidth": 1.2},
             kwargs_params={"color": INK, "fontsize": 8, "va": "center"},
             kwargs_values={"color": "white", "fontsize": 8, "fontweight": "bold", "zorder": 5,
