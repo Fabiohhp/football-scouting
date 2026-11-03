@@ -264,7 +264,11 @@ redistributed here; full terms in [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md)
 
 ## Author
 
-Fábio Henrique Peixe ([LinkedIn](https://www.linkedin.com/in/f%C3%A1bio-henrique-peixe/))
+Fábio Henrique Peixe ([LinkedIn](https://www.linkedin.com/in/f%C3%A1bio-henrique-peixe/)). Also by
+the author, a football data platform in three parts: the
+[pipeline](https://github.com/Fabiohhp/football-data-engineering), the
+[analytics](https://github.com/Fabiohhp/football-data-analytics) and the
+[models](https://github.com/Fabiohhp/football-data-science).
 
 ## License
 
